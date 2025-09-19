@@ -12,6 +12,26 @@ This directory contains comprehensive documentation for CloudUnflare Enhanced v2
 - **production-deployment.md** - Production deployment guide
 - **thread-safety-guide.md** - Thread safety implementation guide
 - **universal_docs_browser_enhanced.py** - AI-powered documentation browser
+- **🎨 [cloudunflare-architecture-diagram.html](cloudunflare-architecture-diagram.html)** - Interactive architecture visualization
+
+#### 🎯 Interactive Architecture Diagram
+The **CloudUnflare Enhanced v2.0 Architecture Diagram** provides a comprehensive, interactive visualization of the entire system:
+
+**Features:**
+- **7 Interactive Layers**: DNS Protocols, Processing Engine, OPSEC Framework, Intelligence Pipeline, Security Monitoring, Container Layer, Network Topology
+- **Live Performance Metrics**: Real-time QPS, thread count, OPSEC status, container health
+- **Animated Data Flow**: Visual representation of DNS query processing through 50-thread architecture
+- **Docker Integration**: Complete container orchestration and Portainer deployment visualization
+- **Professional UI**: Dark theme with gradient effects, responsive design, enterprise appearance
+
+**How to Use:**
+1. Open `cloudunflare-architecture-diagram.html` in any modern web browser
+2. Click on any architectural component for detailed technical specifications
+3. Watch animated data flows showing system operation
+4. View live metrics in the performance dashboard
+5. Explore Docker container topology and resource allocation
+
+**Technical Accuracy**: Based on actual CloudUnflare Enhanced v2.0 codebase with real performance targets (10,000+ QPS, 50 threads, nation-state OPSEC)
 
 #### 🚀 [Installation](installation/)
 - **[Quick Start Guide](installation/quick-start.md)** - Get running in 5 minutes

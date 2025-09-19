@@ -1,0 +1,317 @@
+# CloudUnflare Enhanced v2.0 - Portainer Stack Deployment
+# High-performance DNS reconnaissance with comprehensive container orchestration
+# Optimized for production deployment with security and monitoring
+
+version: '3.8'
+
+services:
+  # Main CloudUnflare Enhanced application
+  cloudunflare-main:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        BUILD_VERSION: "2.0-Enhanced"
+        BUILD_DATE: "${BUILD_DATE:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}"
+        BUILD_VARIANT: "standard"
+    image: cloudunflare-enhanced:2.0
+    container_name: cloudunflare-main
+    hostname: cloudunflare-main
+    restart: unless-stopped
+
+    # Network configuration for advanced DNS operations
+    networks:
+      - cloudunflare-network
+      - monitoring-network
+
+    # DNS configuration for optimal performance
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+      - 2606:4700:4700::1111
+      - 2001:4860:4860::8888
+
+    # Capabilities for OPSEC operations (requires NET_ADMIN for advanced networking)
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_PTRACE
+
+    # Security configuration
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:unconfined
+
+    # Resource limits for performance optimization
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '2.0'
+        reservations:
+          memory: 256M
+          cpus: '1.0'
+
+    # Volume mounts for persistent data
+    volumes:
+      - cloudunflare-config:/app/config
+      - cloudunflare-results:/app/results
+      - cloudunflare-logs:/app/logs
+      - cloudunflare-wordlists:/app/wordlists
+      - /etc/resolv.conf:/etc/resolv.conf:ro
+
+    # Environment configuration
+    environment:
+      - CLOUDUNFLARE_MAX_THREADS=50
+      - CLOUDUNFLARE_DNS_TIMEOUT=30
+      - CLOUDUNFLARE_OPSEC_MODE=1
+      - CLOUDUNFLARE_LOG_LEVEL=1
+      - CLOUDUNFLARE_PERFORMANCE_MODE=1
+      - TZ=UTC
+
+    # Health monitoring
+    healthcheck:
+      test: ["/app/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Labels for Portainer management
+    labels:
+      - "traefik.enable=false"
+      - "cloudunflare.service=main"
+      - "cloudunflare.version=2.0-enhanced"
+      - "portainer.stack.name=cloudunflare"
+
+  # Reconnaissance variant for specialized operations
+  cloudunflare-recon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        BUILD_VERSION: "2.0-Enhanced-Recon"
+        BUILD_DATE: "${BUILD_DATE:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}"
+        BUILD_VARIANT: "reconnaissance"
+    image: cloudunflare-enhanced:2.0-recon
+    container_name: cloudunflare-recon
+    hostname: cloudunflare-recon
+    restart: unless-stopped
+
+    networks:
+      - cloudunflare-network
+      - monitoring-network
+
+    # Enhanced capabilities for reconnaissance modules
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_PTRACE
+      - SYS_ADMIN
+
+    security_opt:
+      - no-new-privileges:true
+      - apparmor:unconfined
+
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '4.0'
+        reservations:
+          memory: 512M
+          cpus: '2.0'
+
+    volumes:
+      - cloudunflare-config:/app/config
+      - cloudunflare-recon-results:/app/results
+      - cloudunflare-logs:/app/logs
+      - cloudunflare-wordlists:/app/wordlists
+      - cloudunflare-probes:/app/probes
+
+    environment:
+      - CLOUDUNFLARE_MAX_THREADS=100
+      - CLOUDUNFLARE_DNS_TIMEOUT=60
+      - CLOUDUNFLARE_OPSEC_MODE=1
+      - CLOUDUNFLARE_LOG_LEVEL=2
+      - CLOUDUNFLARE_RECON_MODE=1
+      - RECON_MODULES_ENABLED=1
+      - TZ=UTC
+
+    command: ["/app/cloudunflare-recon"]
+
+    healthcheck:
+      test: ["/app/healthcheck.sh"]
+      interval: 45s
+      timeout: 15s
+      retries: 3
+      start_period: 15s
+
+    labels:
+      - "cloudunflare.service=reconnaissance"
+      - "cloudunflare.version=2.0-enhanced-recon"
+      - "portainer.stack.name=cloudunflare"
+
+  # Monitoring and metrics collection
+  cloudunflare-monitor:
+    image: prom/node-exporter:latest
+    container_name: cloudunflare-monitor
+    hostname: cloudunflare-monitor
+    restart: unless-stopped
+
+    networks:
+      - monitoring-network
+
+    ports:
+      - "9100:9100"
+
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+
+    labels:
+      - "cloudunflare.service=monitoring"
+      - "portainer.stack.name=cloudunflare"
+
+  # Log aggregation and analysis
+  cloudunflare-logs:
+    image: fluent/fluent-bit:latest
+    container_name: cloudunflare-logs
+    hostname: cloudunflare-logs
+    restart: unless-stopped
+
+    networks:
+      - monitoring-network
+
+    volumes:
+      - cloudunflare-logs:/fluent-bit/log
+      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+
+    depends_on:
+      - cloudunflare-main
+      - cloudunflare-recon
+
+    labels:
+      - "cloudunflare.service=logging"
+      - "portainer.stack.name=cloudunflare"
+
+# Network configuration for isolation and security
+networks:
+  cloudunflare-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+    driver_opts:
+      com.docker.network.bridge.name: cloudunflare-br
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+      com.docker.network.driver.mtu: 1500
+
+  monitoring-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+          gateway: 172.21.0.1
+
+# Persistent volume configuration
+volumes:
+  # Main application data
+  cloudunflare-config:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/config
+
+  cloudunflare-results:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/results
+
+  cloudunflare-recon-results:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/recon-results
+
+  cloudunflare-logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/logs
+
+  cloudunflare-wordlists:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/wordlists
+
+  cloudunflare-probes:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./data/probes
+
+# Configuration for Portainer integration
+x-portainer-config:
+  environment-variables:
+    CLOUDUNFLARE_MAX_THREADS:
+      description: "Maximum number of concurrent threads (1-100)"
+      default: "50"
+      required: false
+
+    CLOUDUNFLARE_DNS_TIMEOUT:
+      description: "DNS query timeout in seconds (5-120)"
+      default: "30"
+      required: false
+
+    CLOUDUNFLARE_OPSEC_MODE:
+      description: "Enable OPSEC protections (0=disabled, 1=enabled)"
+      default: "1"
+      required: false
+
+    CLOUDUNFLARE_LOG_LEVEL:
+      description: "Logging verbosity (0=silent, 1=normal, 2=verbose, 3=debug)"
+      default: "1"
+      required: false
+
+  volume-mappings:
+    config:
+      description: "Configuration files directory"
+      default: "./data/config"
+      required: true
+
+    results:
+      description: "Scan results output directory"
+      default: "./data/results"
+      required: true
+
+    wordlists:
+      description: "Wordlists for enumeration"
+      default: "./data/wordlists"
+      required: true

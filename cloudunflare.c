@@ -346,11 +346,33 @@ int perform_dns_lookup(struct recon_session *session, const char *domain) {
     query.timeout.tv_nsec = 0;
     query.retry_count = 0;
 
-    // Allocate space for new result
+    // Thread-safe allocation for new result
+    pthread_mutex_lock(&session->session_mutex);
     session->dns_results = realloc(session->dns_results,
                                  (session->dns_result_count + 1) * sizeof(struct enhanced_dns_result));
+    if (!session->dns_results) {
+        pthread_mutex_unlock(&session->session_mutex);
+        printf("   [-] Memory allocation failed for DNS result\n");
+        return -1;
+    }
 
     struct enhanced_dns_result *result = &session->dns_results[session->dns_result_count];
+
+    // Initialize result mutex
+    if (pthread_mutex_init(&result->result_mutex, NULL) != 0) {
+        pthread_mutex_unlock(&session->session_mutex);
+        printf("   [-] Failed to initialize result mutex\n");
+        return -1;
+    }
+
+    // Initialize atomic fields
+    atomic_store(&result->enrichment_count, 0);
+    atomic_store(&result->total_response_time_ms, 0);
+    atomic_store(&result->dnssec_validated, false);
+    atomic_store(&result->response_validated, false);
+    atomic_store(&result->confidence_score, 0.0f);
+    atomic_store(&result->resolution_timestamp, 0);
+    pthread_mutex_unlock(&session->session_mutex);
 
     // Perform enhanced DNS query with intelligent fallback
     int status = perform_enhanced_dns_query(&query, &session->dns_chain, result);
@@ -358,10 +380,13 @@ int perform_dns_lookup(struct recon_session *session, const char *domain) {
     if (status != 0) {
         printf("   [-] Enhanced DNS lookup failed for %s\n", domain);
         session->monitor.consecutive_failures++;
+        pthread_mutex_destroy(&result->result_mutex);
         return -1;
     }
 
+    pthread_mutex_lock(&session->session_mutex);
     session->dns_result_count++;
+    pthread_mutex_unlock(&session->session_mutex);
 
     // Extract IPv4 addresses for compatibility
     for (int i = 0; i < result->resolution.ipv4_count; i++) {
@@ -381,11 +406,15 @@ int perform_dns_lookup(struct recon_session *session, const char *domain) {
         }
         printf("\n");
 
-        // Add to target's IP list for compatibility
+        // Thread-safe addition to target's IP list
+        pthread_mutex_lock(&session->session_mutex);
         session->target->ip_addresses = realloc(session->target->ip_addresses,
                                               (session->target->ip_count + 1) * sizeof(char*));
-        session->target->ip_addresses[session->target->ip_count] = strdup(ip_str);
-        session->target->ip_count++;
+        if (session->target->ip_addresses) {
+            session->target->ip_addresses[session->target->ip_count] = strdup(ip_str);
+            session->target->ip_count++;
+        }
+        pthread_mutex_unlock(&session->session_mutex);
     }
 
     // Show IPv6 addresses if available
@@ -395,14 +424,14 @@ int perform_dns_lookup(struct recon_session *session, const char *domain) {
         printf("   [+] %s -> %s [IPv6]\n", domain, ip_str);
     }
 
-    // Perform IP enrichment for first IPv4 address
-    if (result->resolution.ipv4_count > 0 && result->enrichment_count == 0) {
+    // Perform IP enrichment for first IPv4 address (thread-safe)
+    if (result->resolution.ipv4_count > 0 && atomic_load(&result->enrichment_count) == 0) {
         char ip_str[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &result->resolution.ipv4_addresses[0], ip_str, INET_ADDRSTRLEN);
 
-        // Use pre-allocated array in struct - no malloc needed
+        // Use pre-allocated array in struct - thread-safe enrichment
         if (enrich_ip_address(ip_str, &result->enrichment[0]) == 0) {
-            result->enrichment_count = 1;
+            atomic_store(&result->enrichment_count, 1);
         }
     }
 
@@ -468,14 +497,18 @@ int mine_certificate_logs(struct recon_session *session, const char *domain) {
                     if (name_value && strstr(name_value, domain)) {
                         printf("   [+] CT subdomain: %s\n", name_value);
 
-                        // Add to discovered subdomains
+                        // Thread-safe addition to discovered subdomains
+                        pthread_mutex_lock(&session->session_mutex);
                         session->target->discovered_subdomains = realloc(
                             session->target->discovered_subdomains,
                             (session->target->subdomain_count + 1) * sizeof(char*)
                         );
-                        session->target->discovered_subdomains[session->target->subdomain_count] =
-                            strdup(name_value);
-                        session->target->subdomain_count++;
+                        if (session->target->discovered_subdomains) {
+                            session->target->discovered_subdomains[session->target->subdomain_count] =
+                                strdup(name_value);
+                            session->target->subdomain_count++;
+                        }
+                        pthread_mutex_unlock(&session->session_mutex);
                     }
                 }
             }
@@ -722,6 +755,24 @@ void cleanup_recon_session(struct recon_session *session) {
 
         free(session->target);
     }
+
+    // Cleanup DNS results and their mutexes
+    if (session->dns_results) {
+        for (int i = 0; i < session->dns_result_count; i++) {
+            pthread_mutex_destroy(&session->dns_results[i].result_mutex);
+            // Cleanup enrichment mutexes
+            for (int j = 0; j < atomic_load(&session->dns_results[i].enrichment_count); j++) {
+                pthread_mutex_destroy(&session->dns_results[i].enrichment[j].enrichment_mutex);
+            }
+        }
+        free(session->dns_results);
+    }
+
+    // Cleanup resolver chain mutexes
+    for (int i = 0; i < session->dns_chain.resolver_count; i++) {
+        pthread_mutex_destroy(&session->dns_chain.resolvers[i].resolver_mutex);
+    }
+    pthread_mutex_destroy(&session->dns_chain.chain_mutex);
 
     pthread_mutex_destroy(&session->session_mutex);
 }

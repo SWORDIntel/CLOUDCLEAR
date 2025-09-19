@@ -17,8 +17,8 @@
 #include <json-c/json.h>
 #include <math.h>
 
-// Global configuration and state
-struct adaptive_retry_strategy global_retry_strategy = {
+// Thread-local configuration for thread safety
+_Thread_local struct adaptive_retry_strategy thread_retry_strategy = {
     .base_delay_ms = 1000,
     .backoff_multiplier = 1.5,
     .max_retries = 3,
@@ -29,7 +29,7 @@ struct adaptive_retry_strategy global_retry_strategy = {
     .adaptive_timeout = true
 };
 
-struct dns_response_validation global_validation_config = {
+_Thread_local struct dns_response_validation thread_validation_config = {
     .expected_ttl_range = {300, 86400},
     .entropy_threshold = 0.7,
     .response_time_baseline_ms = 5000,
@@ -38,36 +38,46 @@ struct dns_response_validation global_validation_config = {
     .ip_range_count = 0
 };
 
+// Shared rate limiter (thread-safe with atomic operations)
 struct rate_limiter global_rate_limiter = {0};
 
-// Default high-performance DNS resolvers with verified active providers
-struct dns_resolver default_resolvers[] = {
+// Default resolver template data (mutexes initialized during chain setup)
+static struct {
+    const char* address;
+    dns_protocol_t protocol;
+    uint16_t port;
+    bool supports_dnssec;
+    bool supports_ecs;
+} default_resolver_templates[] = {
     // DNS over QUIC (fastest encrypted option - 10% faster than DoH)
-    {"dns.cloudflare.com", DNS_PROTOCOL_DOQ, 853, 0.0, 0, 0, 0, true, true, true, 0},
-    {"dns.google", DNS_PROTOCOL_DOQ, 853, 0.0, 0, 0, 0, true, true, true, 0},
+    {"dns.cloudflare.com", DNS_PROTOCOL_DOQ, 853, true, true},
+    {"dns.google", DNS_PROTOCOL_DOQ, 853, true, true},
 
     // DNS over HTTPS (verified active providers)
-    {"cloudflare-dns.com", DNS_PROTOCOL_DOH, 443, 0.0, 0, 0, 0, true, true, true, 0},
-    {"dns.google", DNS_PROTOCOL_DOH, 443, 0.0, 0, 0, 0, true, true, true, 0},
-    {"dns.quad9.net", DNS_PROTOCOL_DOH, 443, 0.0, 0, 0, 0, true, false, true, 0},
-    {"dns.adguard.com", DNS_PROTOCOL_DOH, 443, 0.0, 0, 0, 0, true, true, true, 0},
-    {"doh.mullvad.net", DNS_PROTOCOL_DOH, 443, 0.0, 0, 0, 0, true, true, true, 0},
-    {"doh.opendns.com", DNS_PROTOCOL_DOH, 443, 0.0, 0, 0, 0, true, true, true, 0},
-    {"doh.libredns.gr", DNS_PROTOCOL_DOH, 443, 0.0, 0, 0, 0, true, false, true, 0},
-    {"freedns.controld.com", DNS_PROTOCOL_DOH, 443, 0.0, 0, 0, 0, true, true, true, 0},
+    {"cloudflare-dns.com", DNS_PROTOCOL_DOH, 443, true, true},
+    {"dns.google", DNS_PROTOCOL_DOH, 443, true, true},
+    {"dns.quad9.net", DNS_PROTOCOL_DOH, 443, true, false},
+    {"dns.adguard.com", DNS_PROTOCOL_DOH, 443, true, true},
+    {"doh.mullvad.net", DNS_PROTOCOL_DOH, 443, true, true},
+    {"doh.opendns.com", DNS_PROTOCOL_DOH, 443, true, true},
+    {"doh.libredns.gr", DNS_PROTOCOL_DOH, 443, true, false},
+    {"freedns.controld.com", DNS_PROTOCOL_DOH, 443, true, true},
 
     // DNS over TLS (encrypted)
-    {"1.1.1.1", DNS_PROTOCOL_DOT, 853, 0.0, 0, 0, 0, true, true, true, 0},
-    {"8.8.8.8", DNS_PROTOCOL_DOT, 853, 0.0, 0, 0, 0, true, true, true, 0},
-    {"9.9.9.9", DNS_PROTOCOL_DOT, 853, 0.0, 0, 0, 0, true, false, true, 0},
+    {"1.1.1.1", DNS_PROTOCOL_DOT, 853, true, true},
+    {"8.8.8.8", DNS_PROTOCOL_DOT, 853, true, true},
+    {"9.9.9.9", DNS_PROTOCOL_DOT, 853, true, false},
 
     // Traditional UDP/TCP (fallback)
-    {"1.1.1.1", DNS_PROTOCOL_UDP, 53, 0.0, 0, 0, 0, false, true, true, 0},
-    {"8.8.8.8", DNS_PROTOCOL_UDP, 53, 0.0, 0, 0, 0, false, true, true, 0},
-    {"9.9.9.9", DNS_PROTOCOL_UDP, 53, 0.0, 0, 0, 0, true, false, true, 0}
+    {"1.1.1.1", DNS_PROTOCOL_UDP, 53, false, true},
+    {"8.8.8.8", DNS_PROTOCOL_UDP, 53, false, true},
+    {"9.9.9.9", DNS_PROTOCOL_UDP, 53, true, false}
 };
 
-int default_resolver_count = sizeof(default_resolvers) / sizeof(default_resolvers[0]);
+// Placeholder for backward compatibility
+struct dns_resolver default_resolvers[16] = {0};
+
+int default_resolver_count = sizeof(default_resolver_templates) / sizeof(default_resolver_templates[0]);
 
 // HTTP response structure for API calls
 struct http_response {
@@ -127,7 +137,7 @@ static size_t header_callback(char *buffer, size_t size, size_t nitems,
     return real_size;
 }
 
-// Initialize DNS resolver chain with default resolvers
+// Initialize DNS resolver chain with default resolvers (thread-safe)
 int init_dns_resolver_chain(struct dns_resolver_chain *chain) {
     if (!chain) return -1;
 
@@ -137,14 +147,40 @@ int init_dns_resolver_chain(struct dns_resolver_chain *chain) {
         return -1;
     }
 
-    // Copy default resolvers
+    // Initialize resolvers from templates and setup mutexes
     for (int i = 0; i < default_resolver_count; i++) {
-        memcpy(&chain->resolvers[i], &default_resolvers[i], sizeof(struct dns_resolver));
+        struct dns_resolver *resolver = &chain->resolvers[i];
+
+        // Copy template data
+        strncpy(resolver->address, default_resolver_templates[i].address, sizeof(resolver->address) - 1);
+        resolver->address[sizeof(resolver->address) - 1] = '\0';
+        resolver->protocol = default_resolver_templates[i].protocol;
+        resolver->port = default_resolver_templates[i].port;
+        resolver->supports_dnssec = default_resolver_templates[i].supports_dnssec;
+        resolver->supports_ecs = default_resolver_templates[i].supports_ecs;
+
+        // Initialize per-resolver mutex
+        if (pthread_mutex_init(&resolver->resolver_mutex, NULL) != 0) {
+            // Cleanup previously initialized mutexes on failure
+            for (int j = 0; j < i; j++) {
+                pthread_mutex_destroy(&chain->resolvers[j].resolver_mutex);
+            }
+            pthread_mutex_destroy(&chain->chain_mutex);
+            return -1;
+        }
+
+        // Initialize atomic fields
+        atomic_store(&resolver->success_rate, 0.0f);
+        atomic_store(&resolver->avg_response_time_ms, 0);
+        atomic_store(&resolver->total_queries, 0);
+        atomic_store(&resolver->successful_queries, 0);
+        atomic_store(&resolver->is_available, true);
+        atomic_store(&resolver->last_check, time(NULL));
     }
     chain->resolver_count = default_resolver_count;
     chain->current_resolver = 0;
 
-    printf("[DNS] Initialized resolver chain with %d resolvers\n", chain->resolver_count);
+    printf("[DNS] Initialized resolver chain with %d resolvers (thread-safe)\n", chain->resolver_count);
     return 0;
 }
 
@@ -177,7 +213,7 @@ int add_resolver_to_chain(struct dns_resolver_chain *chain,
     return 0;
 }
 
-// Intelligent resolver selection based on performance metrics
+// Intelligent resolver selection based on performance metrics (thread-safe)
 struct dns_resolver* select_optimal_resolver(struct dns_resolver_chain *chain,
                                            dns_record_type_t query_type) {
     if (!chain || chain->resolver_count == 0) return NULL;
@@ -190,14 +226,19 @@ struct dns_resolver* select_optimal_resolver(struct dns_resolver_chain *chain,
     for (int i = 0; i < chain->resolver_count; i++) {
         struct dns_resolver *resolver = &chain->resolvers[i];
 
-        if (!resolver->is_available) continue;
+        // Use atomic loads for thread-safe access
+        bool is_available = atomic_load(&resolver->is_available);
+        if (!is_available) continue;
+
+        float success_rate = atomic_load(&resolver->success_rate);
+        uint32_t avg_response_time = atomic_load(&resolver->avg_response_time_ms);
 
         // Calculate composite score: success_rate * 0.7 + speed_factor * 0.3
-        float speed_factor = resolver->avg_response_time_ms > 0 ?
-                           (5000.0 / resolver->avg_response_time_ms) : 1.0;
+        float speed_factor = avg_response_time > 0 ?
+                           (5000.0 / avg_response_time) : 1.0;
         if (speed_factor > 1.0) speed_factor = 1.0;
 
-        float score = (resolver->success_rate * 0.7) + (speed_factor * 0.3);
+        float score = (success_rate * 0.7) + (speed_factor * 0.3);
 
         // Bonus for encrypted protocols (DoQ > DoH > DoT)
         switch (resolver->protocol) {
@@ -237,34 +278,54 @@ struct dns_resolver* select_optimal_resolver(struct dns_resolver_chain *chain,
     return best_resolver;
 }
 
-// Update resolver performance metrics
+// Update resolver performance metrics (thread-safe with atomic operations)
 int update_resolver_metrics(struct dns_resolver *resolver,
                            bool success,
                            uint32_t response_time) {
     if (!resolver) return -1;
 
-    resolver->total_queries++;
+    // Use atomic operations for thread-safe updates
+    uint32_t total_queries = atomic_fetch_add(&resolver->total_queries, 1) + 1;
+    uint32_t successful_queries = atomic_load(&resolver->successful_queries);
+
     if (success) {
-        resolver->successful_queries++;
+        successful_queries = atomic_fetch_add(&resolver->successful_queries, 1) + 1;
 
         // Update average response time with exponential moving average
-        if (resolver->avg_response_time_ms == 0) {
-            resolver->avg_response_time_ms = response_time;
+        uint32_t current_avg = atomic_load(&resolver->avg_response_time_ms);
+        uint32_t new_avg;
+
+        if (current_avg == 0) {
+            new_avg = response_time;
         } else {
-            resolver->avg_response_time_ms =
-                (resolver->avg_response_time_ms * 0.8) + (response_time * 0.2);
+            new_avg = (uint32_t)((current_avg * 0.8) + (response_time * 0.2));
+        }
+
+        // Atomic compare-and-swap to update average response time
+        while (!atomic_compare_exchange_weak(&resolver->avg_response_time_ms, &current_avg, new_avg)) {
+            if (current_avg == 0) {
+                new_avg = response_time;
+            } else {
+                new_avg = (uint32_t)((current_avg * 0.8) + (response_time * 0.2));
+            }
         }
     }
 
-    // Calculate success rate
-    resolver->success_rate = (float)resolver->successful_queries / resolver->total_queries;
+    // Calculate and update success rate atomically
+    float new_success_rate = (float)successful_queries / total_queries;
+    atomic_store(&resolver->success_rate, new_success_rate);
 
     // Mark as unavailable if success rate drops below 50%
-    if (resolver->total_queries >= 10 && resolver->success_rate < 0.5) {
-        resolver->is_available = false;
-        printf("[DNS] Marking resolver %s as unavailable (success rate: %.2f)\n",
-               resolver->address, resolver->success_rate);
+    if (total_queries >= 10 && new_success_rate < 0.5) {
+        bool expected = true;
+        if (atomic_compare_exchange_strong(&resolver->is_available, &expected, false)) {
+            printf("[DNS] Marking resolver %s as unavailable (success rate: %.2f)\n",
+                   resolver->address, new_success_rate);
+        }
     }
+
+    // Update last check timestamp
+    atomic_store(&resolver->last_check, time(NULL));
 
     return 0;
 }
@@ -385,12 +446,26 @@ int perform_enhanced_dns_query(struct dns_query_context *query,
     return 0;
 }
 
-// IP enrichment using multiple geolocation APIs
+// IP enrichment using multiple geolocation APIs (thread-safe)
 int enrich_ip_address(const char *ip_address,
                      struct ip_enrichment_data *enrichment) {
     if (!ip_address || !enrichment) return -1;
 
     memset(enrichment, 0, sizeof(struct ip_enrichment_data));
+
+    // Initialize enrichment mutex
+    if (pthread_mutex_init(&enrichment->enrichment_mutex, NULL) != 0) {
+        return -1;
+    }
+
+    // Initialize atomic fields
+    atomic_store(&enrichment->asn, 0);
+    atomic_store(&enrichment->latitude, 0.0f);
+    atomic_store(&enrichment->longitude, 0.0f);
+    atomic_store(&enrichment->is_hosting_provider, false);
+    atomic_store(&enrichment->is_tor_exit, false);
+    atomic_store(&enrichment->is_vpn, false);
+    atomic_store(&enrichment->is_cloud_provider, false);
 
     CURL *curl;
     CURLcode res;
@@ -424,71 +499,91 @@ int enrich_ip_address(const char *ip_address,
             if (json_object_object_get_ex(json, "status", &status_obj)) {
                 const char *status = json_object_get_string(status_obj);
                 if (strcmp(status, "success") == 0) {
-                    // Extract country information
+                    // Extract country information (thread-safe string updates)
                     if (json_object_object_get_ex(json, "countryCode", &country_obj)) {
+                        pthread_mutex_lock(&enrichment->enrichment_mutex);
                         strncpy(enrichment->country_code,
                                json_object_get_string(country_obj),
                                sizeof(enrichment->country_code) - 1);
+                        enrichment->country_code[sizeof(enrichment->country_code) - 1] = '\0';
+                        pthread_mutex_unlock(&enrichment->enrichment_mutex);
                     }
 
-                    // Extract region and city
+                    // Extract region and city (thread-safe string updates)
                     if (json_object_object_get_ex(json, "region", &region_obj)) {
+                        pthread_mutex_lock(&enrichment->enrichment_mutex);
                         strncpy(enrichment->region,
                                json_object_get_string(region_obj),
                                sizeof(enrichment->region) - 1);
+                        enrichment->region[sizeof(enrichment->region) - 1] = '\0';
+                        pthread_mutex_unlock(&enrichment->enrichment_mutex);
                     }
 
                     if (json_object_object_get_ex(json, "city", &city_obj)) {
+                        pthread_mutex_lock(&enrichment->enrichment_mutex);
                         strncpy(enrichment->city,
                                json_object_get_string(city_obj),
                                sizeof(enrichment->city) - 1);
+                        enrichment->city[sizeof(enrichment->city) - 1] = '\0';
+                        pthread_mutex_unlock(&enrichment->enrichment_mutex);
                     }
 
-                    // Extract coordinates
+                    // Extract coordinates (atomic updates)
                     if (json_object_object_get_ex(json, "lat", &lat_obj)) {
-                        enrichment->latitude = json_object_get_double(lat_obj);
+                        atomic_store(&enrichment->latitude, (float)json_object_get_double(lat_obj));
                     }
 
                     if (json_object_object_get_ex(json, "lon", &lon_obj)) {
-                        enrichment->longitude = json_object_get_double(lon_obj);
+                        atomic_store(&enrichment->longitude, (float)json_object_get_double(lon_obj));
                     }
 
-                    // Extract ISP and AS information
+                    // Extract ISP and AS information (thread-safe string updates)
                     if (json_object_object_get_ex(json, "isp", &isp_obj)) {
+                        pthread_mutex_lock(&enrichment->enrichment_mutex);
                         strncpy(enrichment->isp,
                                json_object_get_string(isp_obj),
                                sizeof(enrichment->isp) - 1);
+                        enrichment->isp[sizeof(enrichment->isp) - 1] = '\0';
+                        pthread_mutex_unlock(&enrichment->enrichment_mutex);
                     }
 
                     if (json_object_object_get_ex(json, "as", &as_obj)) {
                         const char *as_str = json_object_get_string(as_obj);
                         if (as_str && strncmp(as_str, "AS", 2) == 0) {
-                            enrichment->asn = atoi(as_str + 2);
+                            atomic_store(&enrichment->asn, (uint32_t)atoi(as_str + 2));
                         }
                     }
 
                     if (json_object_object_get_ex(json, "asname", &asname_obj)) {
+                        pthread_mutex_lock(&enrichment->enrichment_mutex);
                         strncpy(enrichment->as_name,
                                json_object_get_string(asname_obj),
                                sizeof(enrichment->as_name) - 1);
+                        enrichment->as_name[sizeof(enrichment->as_name) - 1] = '\0';
+                        pthread_mutex_unlock(&enrichment->enrichment_mutex);
                     }
 
-                    // Extract hosting and proxy information
+                    // Extract hosting and proxy information (atomic updates)
                     if (json_object_object_get_ex(json, "hosting", &hosting_obj)) {
-                        enrichment->is_hosting_provider = json_object_get_boolean(hosting_obj);
+                        atomic_store(&enrichment->is_hosting_provider, json_object_get_boolean(hosting_obj));
                     }
 
                     if (json_object_object_get_ex(json, "proxy", &proxy_obj)) {
-                        enrichment->is_vpn = json_object_get_boolean(proxy_obj);
+                        atomic_store(&enrichment->is_vpn, json_object_get_boolean(proxy_obj));
                     }
 
+                    // Thread-safe output using atomic loads
+                    pthread_mutex_lock(&enrichment->enrichment_mutex);
+                    uint32_t asn = atomic_load(&enrichment->asn);
+                    bool is_hosting = atomic_load(&enrichment->is_hosting_provider);
                     printf("[ENRICH] %s: %s, %s (%s) - AS%u %s\n",
                            ip_address,
                            enrichment->city,
                            enrichment->country_code,
                            enrichment->isp,
-                           enrichment->asn,
-                           enrichment->is_hosting_provider ? "[HOSTING]" : "");
+                           asn,
+                           is_hosting ? "[HOSTING]" : "");
+                    pthread_mutex_unlock(&enrichment->enrichment_mutex);
                 }
             }
             json_object_put(json);
@@ -644,35 +739,51 @@ int init_rate_limiter(struct rate_limiter *limiter,
     return 0;
 }
 
-// Acquire tokens with rate limiting
+// Acquire tokens with rate limiting (optimized with atomic operations)
 bool acquire_rate_limit_token(struct rate_limiter *limiter,
                              uint32_t tokens_requested) {
     if (!limiter) return false;
 
-    pthread_mutex_lock(&limiter->mutex);
-
     struct timespec current_time;
     clock_gettime(CLOCK_MONOTONIC, &current_time);
 
-    // Calculate time elapsed and refill tokens
+    // Try lock-free path first for common case
+    uint32_t current_tokens = atomic_load(&limiter->tokens);
+    if (current_tokens >= tokens_requested) {
+        // Try atomic decrement without lock
+        uint32_t expected = current_tokens;
+        while (expected >= tokens_requested) {
+            if (atomic_compare_exchange_weak(&limiter->tokens, &expected, expected - tokens_requested)) {
+                atomic_fetch_add(&limiter->requests_allowed, 1);
+                return true;
+            }
+        }
+    }
+
+    // Fall back to mutex for refill logic
+    pthread_mutex_lock(&limiter->mutex);
+
+    // Calculate time elapsed and refill tokens (last_refill protected by mutex)
     long elapsed_ms = (current_time.tv_sec - limiter->last_refill.tv_sec) * 1000 +
                      (current_time.tv_nsec - limiter->last_refill.tv_nsec) / 1000000;
 
     if (elapsed_ms >= 1000) { // Refill every second
         uint32_t tokens_to_add = (elapsed_ms / 1000) * limiter->refill_rate_per_second;
-        limiter->tokens += tokens_to_add;
-        if (limiter->tokens > limiter->max_tokens) {
-            limiter->tokens = limiter->max_tokens;
+        uint32_t new_tokens = atomic_load(&limiter->tokens) + tokens_to_add;
+        if (new_tokens > limiter->max_tokens) {
+            new_tokens = limiter->max_tokens;
         }
-        limiter->last_refill = current_time;
+        atomic_store(&limiter->tokens, new_tokens);
+        limiter->last_refill = current_time;  // Update under mutex protection
     }
 
-    bool allowed = (limiter->tokens >= tokens_requested);
+    current_tokens = atomic_load(&limiter->tokens);
+    bool allowed = (current_tokens >= tokens_requested);
     if (allowed) {
-        limiter->tokens -= tokens_requested;
-        limiter->requests_allowed++;
+        atomic_fetch_sub(&limiter->tokens, tokens_requested);
+        atomic_fetch_add(&limiter->requests_allowed, 1);
     } else {
-        limiter->requests_denied++;
+        atomic_fetch_add(&limiter->requests_denied, 1);
     }
 
     pthread_mutex_unlock(&limiter->mutex);
@@ -767,20 +878,35 @@ void print_enhanced_dns_result(struct enhanced_dns_result *result) {
     printf("=== End Result ===\n\n");
 }
 
-// Initialize enhanced DNS engine
-int init_dns_enhanced_engine(void) {
-    printf("[DNS] Initializing enhanced DNS engine...\n");
+// Thread-safe configuration initialization
+int init_thread_config(void) {
+    // Each thread gets its own copy automatically due to _Thread_local
+    // No additional initialization needed for thread-local variables
+    return 0;
+}
 
-    // Initialize global rate limiter (10 requests per second)
+void cleanup_thread_config(void) {
+    // Thread-local variables are automatically cleaned up
+    // No explicit cleanup needed
+}
+
+// Initialize enhanced DNS engine (thread-safe)
+int init_dns_enhanced_engine(void) {
+    printf("[DNS] Initializing enhanced DNS engine (thread-safe)...\n");
+
+    // Initialize global rate limiter (10 requests per second) - shared across threads
     if (init_rate_limiter(&global_rate_limiter, 10, 10) != 0) {
         printf("[DNS] Failed to initialize rate limiter\n");
         return -1;
     }
 
-    // Initialize curl
+    // Initialize curl (thread-safe)
     curl_global_init(CURL_GLOBAL_DEFAULT);
 
-    printf("[DNS] Enhanced DNS engine initialized successfully\n");
+    // Initialize thread-local config for main thread
+    init_thread_config();
+
+    printf("[DNS] Enhanced DNS engine initialized successfully (thread-safe)\n");
     return 0;
 }
 

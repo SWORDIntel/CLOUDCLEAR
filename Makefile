@@ -1,11 +1,14 @@
 # Makefile for CloudUnflare Enhanced
-# Advanced DNS reconnaissance tool with OPSEC capabilities
+# Advanced DNS reconnaissance tool with OPSEC capabilities and thread safety
 
 CC = gcc
-CFLAGS = -Wall -Wextra -O3 -std=c99 -D_GNU_SOURCE
-LIBS = -lcurl -lssl -lcrypto -ljson-c -lpthread
+CFLAGS = -Wall -Wextra -O3 -std=c11 -D_GNU_SOURCE -pthread
+THREAD_SAFE_CFLAGS = $(CFLAGS) -DTHREAD_SAFE_BUILD
+LIBS = -lcurl -lssl -lcrypto -ljson-c -lpthread -latomic
 TARGET = cloudunflare
+THREAD_TEST_TARGET = thread_safety_test
 SOURCES = cloudunflare.c dns_enhanced.c
+THREAD_TEST_SOURCES = thread_safety_test.c dns_enhanced.c
 HEADERS = dns_enhanced.h config.h
 
 # Check for required libraries
@@ -13,9 +16,18 @@ CURL_EXISTS := $(shell pkg-config --exists libcurl && echo yes)
 SSL_EXISTS := $(shell pkg-config --exists openssl && echo yes)
 JSON_EXISTS := $(shell pkg-config --exists json-c && echo yes)
 
-.PHONY: all clean install deps check
+.PHONY: all clean install deps check thread-test thread-safe
 
 all: check $(TARGET)
+
+# Thread-safe build target
+thread-safe: check thread-safe-build
+
+thread-safe-build: $(SOURCES) $(HEADERS)
+	@echo "Compiling CloudUnflare Enhanced with thread safety improvements..."
+	$(CC) $(THREAD_SAFE_CFLAGS) -o $(TARGET) $(SOURCES) $(LIBS)
+	@echo "Thread-safe build completed successfully!"
+	@echo "Features: 50-thread concurrency, atomic operations, mutex protection"
 
 $(TARGET): $(SOURCES) $(HEADERS)
 	@echo "Compiling CloudUnflare Enhanced with DNS improvements..."
@@ -59,7 +71,7 @@ install: $(TARGET)
 
 clean:
 	@echo "Cleaning build files..."
-	rm -f $(TARGET) test_enhanced
+	rm -f $(TARGET) test_enhanced $(THREAD_TEST_TARGET)
 	@echo "Clean completed"
 
 # Debug build
@@ -86,20 +98,32 @@ test_enhanced: test_enhanced.c $(SOURCES) $(HEADERS)
 	@echo "Building enhanced DNS test suite..."
 	$(CC) $(CFLAGS) -o test_enhanced test_enhanced.c dns_enhanced.c $(LIBS)
 
+# Thread safety test
+thread-test: $(THREAD_TEST_TARGET)
+	@echo "Running thread safety verification test..."
+	@echo "This test validates 50-thread concurrency safety..."
+	./$(THREAD_TEST_TARGET)
+
+$(THREAD_TEST_TARGET): $(THREAD_TEST_SOURCES) $(HEADERS)
+	@echo "Building thread safety test suite..."
+	$(CC) $(THREAD_SAFE_CFLAGS) -o $(THREAD_TEST_TARGET) $(THREAD_TEST_SOURCES) $(LIBS)
+
 help:
 	@echo "CloudUnflare Enhanced Build System"
 	@echo ""
 	@echo "Available targets:"
-	@echo "  all     - Build the application (default)"
-	@echo "  test    - Build and run test suite"
-	@echo "  deps    - Install required dependencies"
-	@echo "  check   - Check for required dependencies"
-	@echo "  debug   - Build with debug symbols"
-	@echo "  secure  - Build with security hardening"
-	@echo "  analyze - Run static code analysis"
-	@echo "  install - Install to /usr/local/bin"
-	@echo "  clean   - Remove build files"
-	@echo "  help    - Show this help message"
+	@echo "  all         - Build the application (default)"
+	@echo "  thread-safe - Build with thread safety features"
+	@echo "  test        - Build and run DNS test suite"
+	@echo "  thread-test - Build and run thread safety tests"
+	@echo "  deps        - Install required dependencies"
+	@echo "  check       - Check for required dependencies"
+	@echo "  debug       - Build with debug symbols"
+	@echo "  secure      - Build with security hardening"
+	@echo "  analyze     - Run static code analysis"
+	@echo "  install     - Install to /usr/local/bin"
+	@echo "  clean       - Remove build files"
+	@echo "  help        - Show this help message"
 	@echo ""
 	@echo "Enhanced DNS Features:"
 	@echo "  • DoQ/DoH/DoT protocol support with intelligent fallback"

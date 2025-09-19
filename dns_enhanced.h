@@ -14,6 +14,7 @@
 #include <time.h>
 #include <netinet/in.h>
 #include <pthread.h>
+#include <stdatomic.h>
 
 // DNS protocol support
 typedef enum {
@@ -36,19 +37,20 @@ typedef enum {
     DNS_TYPE_CAA = 257
 } dns_record_type_t;
 
-// Enhanced DNS resolver with performance metrics
+// Enhanced DNS resolver with performance metrics (thread-safe)
 struct dns_resolver {
     char address[256];
     dns_protocol_t protocol;
     uint16_t port;
-    float success_rate;
-    uint32_t avg_response_time_ms;
-    uint32_t total_queries;
-    uint32_t successful_queries;
+    _Atomic float success_rate;
+    _Atomic uint32_t avg_response_time_ms;
+    _Atomic uint32_t total_queries;
+    _Atomic uint32_t successful_queries;
     bool supports_dnssec;
     bool supports_ecs;  // EDNS Client Subnet
-    bool is_available;
-    time_t last_check;
+    _Atomic bool is_available;
+    _Atomic time_t last_check;
+    pthread_mutex_t resolver_mutex;  // Per-resolver mutex for complex operations
 };
 
 // Intelligent resolver chain with automatic failover
@@ -95,21 +97,22 @@ struct dual_stack_resolution {
     uint32_t ipv6_response_time;
 };
 
-// IP enrichment data from geolocation APIs
+// IP enrichment data from geolocation APIs (thread-safe)
 struct ip_enrichment_data {
     char country_code[4];
     char region[64];
     char city[128];
     char isp[256];
-    uint32_t asn;
+    _Atomic uint32_t asn;
     char as_name[256];
-    float latitude;
-    float longitude;
-    bool is_hosting_provider;
-    bool is_tor_exit;
-    bool is_vpn;
-    bool is_cloud_provider;
+    _Atomic float latitude;
+    _Atomic float longitude;
+    _Atomic bool is_hosting_provider;
+    _Atomic bool is_tor_exit;
+    _Atomic bool is_vpn;
+    _Atomic bool is_cloud_provider;
     char threat_classification[64];
+    pthread_mutex_t enrichment_mutex;  // Protect string fields during updates
 };
 
 // CDN detection and origin discovery
@@ -151,15 +154,15 @@ struct adaptive_retry_strategy {
     bool adaptive_timeout;
 };
 
-// Rate limiter with token bucket algorithm
+// Rate limiter with token bucket algorithm (optimized for high concurrency)
 struct rate_limiter {
-    uint32_t tokens;
+    _Atomic uint32_t tokens;
     uint32_t max_tokens;
     uint32_t refill_rate_per_second;
-    struct timespec last_refill;
+    struct timespec last_refill;  // Protected by mutex (not atomic due to clock_gettime compatibility)
     pthread_mutex_t mutex;
-    uint32_t requests_denied;
-    uint32_t requests_allowed;
+    _Atomic uint32_t requests_denied;
+    _Atomic uint32_t requests_allowed;
 };
 
 // Wildcard detection for accurate subdomain enumeration
@@ -172,21 +175,22 @@ struct wildcard_detection {
     bool affects_enumeration;
 };
 
-// Enhanced DNS result structure
+// Enhanced DNS result structure (thread-safe)
 struct enhanced_dns_result {
     char domain[256];
     struct dual_stack_resolution resolution;
     struct ip_enrichment_data enrichment[16];
-    int enrichment_count;
+    _Atomic int enrichment_count;
     struct cdn_detection cdn_info;
     struct wildcard_detection wildcard_info;
-    uint32_t total_response_time_ms;
+    _Atomic uint32_t total_response_time_ms;
     dns_protocol_t protocol_used;
     char resolver_used[256];
-    bool dnssec_validated;
-    bool response_validated;
-    float confidence_score;
-    time_t resolution_timestamp;
+    _Atomic bool dnssec_validated;
+    _Atomic bool response_validated;
+    _Atomic float confidence_score;
+    _Atomic time_t resolution_timestamp;
+    pthread_mutex_t result_mutex;  // Protect complex data structures during updates
 };
 
 // Function prototypes for enhanced DNS resolution
@@ -274,9 +278,13 @@ int save_results_to_json(struct enhanced_dns_result *results,
 extern struct dns_resolver default_resolvers[];
 extern int default_resolver_count;
 
-// Global configuration
-extern struct adaptive_retry_strategy global_retry_strategy;
-extern struct dns_response_validation global_validation_config;
-extern struct rate_limiter global_rate_limiter;
+// Thread-safe global configuration
+extern _Thread_local struct adaptive_retry_strategy thread_retry_strategy;
+extern _Thread_local struct dns_response_validation thread_validation_config;
+extern struct rate_limiter global_rate_limiter;  // Shared rate limiter (thread-safe)
+
+// Thread-safe initialization functions
+int init_thread_config(void);
+void cleanup_thread_config(void);
 
 #endif // DNS_ENHANCED_H

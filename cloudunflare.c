@@ -400,7 +400,7 @@ int perform_dns_lookup(struct recon_session *session, const char *domain) {
         char ip_str[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &result->resolution.ipv4_addresses[0], ip_str, INET_ADDRSTRLEN);
 
-        result->enrichment = malloc(sizeof(struct ip_enrichment_data));
+        // Use pre-allocated array in struct - no malloc needed
         if (enrich_ip_address(ip_str, &result->enrichment[0]) == 0) {
             result->enrichment_count = 1;
         }

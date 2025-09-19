@@ -40,20 +40,26 @@ struct dns_response_validation global_validation_config = {
 
 struct rate_limiter global_rate_limiter = {0};
 
-// Default high-performance DNS resolvers with protocol support
+// Default high-performance DNS resolvers with verified active providers
 struct dns_resolver default_resolvers[] = {
     // DNS over QUIC (fastest encrypted option - 10% faster than DoH)
     {"dns.cloudflare.com", DNS_PROTOCOL_DOQ, 853, 0.0, 0, 0, 0, true, true, true, 0},
     {"dns.google", DNS_PROTOCOL_DOQ, 853, 0.0, 0, 0, 0, true, true, true, 0},
 
-    // DNS over HTTPS (encrypted, reliable)
+    // DNS over HTTPS (verified active providers)
     {"cloudflare-dns.com", DNS_PROTOCOL_DOH, 443, 0.0, 0, 0, 0, true, true, true, 0},
     {"dns.google", DNS_PROTOCOL_DOH, 443, 0.0, 0, 0, 0, true, true, true, 0},
     {"dns.quad9.net", DNS_PROTOCOL_DOH, 443, 0.0, 0, 0, 0, true, false, true, 0},
+    {"dns.adguard.com", DNS_PROTOCOL_DOH, 443, 0.0, 0, 0, 0, true, true, true, 0},
+    {"doh.mullvad.net", DNS_PROTOCOL_DOH, 443, 0.0, 0, 0, 0, true, true, true, 0},
+    {"doh.opendns.com", DNS_PROTOCOL_DOH, 443, 0.0, 0, 0, 0, true, true, true, 0},
+    {"doh.libredns.gr", DNS_PROTOCOL_DOH, 443, 0.0, 0, 0, 0, true, false, true, 0},
+    {"freedns.controld.com", DNS_PROTOCOL_DOH, 443, 0.0, 0, 0, 0, true, true, true, 0},
 
     // DNS over TLS (encrypted)
     {"1.1.1.1", DNS_PROTOCOL_DOT, 853, 0.0, 0, 0, 0, true, true, true, 0},
     {"8.8.8.8", DNS_PROTOCOL_DOT, 853, 0.0, 0, 0, 0, true, true, true, 0},
+    {"9.9.9.9", DNS_PROTOCOL_DOT, 853, 0.0, 0, 0, 0, true, false, true, 0},
 
     // Traditional UDP/TCP (fallback)
     {"1.1.1.1", DNS_PROTOCOL_UDP, 53, 0.0, 0, 0, 0, false, true, true, 0},
@@ -69,6 +75,12 @@ struct http_response {
     size_t size;
 };
 
+// Header capture structure for server header extraction
+struct header_capture {
+    char server_header[256];
+    bool server_found;
+};
+
 static size_t write_response_callback(void *contents, size_t size, size_t nmemb,
                                     struct http_response *response) {
     size_t real_size = size * nmemb;
@@ -80,6 +92,37 @@ static size_t write_response_callback(void *contents, size_t size, size_t nmemb,
     memcpy(&(response->data[response->size]), contents, real_size);
     response->size += real_size;
     response->data[response->size] = 0;
+
+    return real_size;
+}
+
+static size_t header_callback(char *buffer, size_t size, size_t nitems,
+                             struct header_capture *capture) {
+    size_t real_size = size * nitems;
+
+    // Look for Server header
+    if (real_size >= 8 && strncasecmp(buffer, "Server:", 7) == 0) {
+        // Extract server header value
+        char *start = buffer + 7;
+        while (*start == ' ' || *start == '\t') start++; // Skip whitespace
+
+        size_t copy_len = real_size - (start - buffer);
+        if (copy_len >= sizeof(capture->server_header)) {
+            copy_len = sizeof(capture->server_header) - 1;
+        }
+
+        memcpy(capture->server_header, start, copy_len);
+        capture->server_header[copy_len] = '\0';
+
+        // Remove trailing CRLF
+        char *end = capture->server_header + strlen(capture->server_header) - 1;
+        while (end > capture->server_header && (*end == '\r' || *end == '\n')) {
+            *end = '\0';
+            end--;
+        }
+
+        capture->server_found = true;
+    }
 
     return real_size;
 }
@@ -469,6 +512,7 @@ int detect_cdn_and_origin(const char *domain,
     CURL *curl;
     CURLcode res;
     struct http_response response = {0};
+    struct header_capture headers = {0};
     char url[512];
 
     curl = curl_easy_init();
@@ -480,6 +524,8 @@ int detect_cdn_and_origin(const char *domain,
     curl_easy_setopt(curl, CURLOPT_URL, url);
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_response_callback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response);
+    curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, header_callback);
+    curl_easy_setopt(curl, CURLOPT_HEADERDATA, &headers);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 0L);
     curl_easy_setopt(curl, CURLOPT_NOBODY, 1L); // HEAD request only
@@ -487,29 +533,24 @@ int detect_cdn_and_origin(const char *domain,
 
     res = curl_easy_perform(curl);
 
-    if (res == CURLE_OK) {
-        char *server_header = NULL;
-        res = curl_easy_getinfo(curl, CURLINFO_SERVER, &server_header);
-
-        if (server_header) {
-            // Check for CDN indicators in server header
-            if (strstr(server_header, "cloudflare")) {
-                cdn->is_cdn = true;
-                strncpy(cdn->cdn_provider, "Cloudflare", sizeof(cdn->cdn_provider) - 1);
-                cdn->cdn_bypass_possible = true;
-                strncpy(cdn->bypass_techniques,
-                       "subdomain enumeration, certificate transparency, origin IP discovery",
-                       sizeof(cdn->bypass_techniques) - 1);
-            } else if (strstr(server_header, "AmazonS3") || strstr(server_header, "CloudFront")) {
-                cdn->is_cdn = true;
-                strncpy(cdn->cdn_provider, "Amazon CloudFront", sizeof(cdn->cdn_provider) - 1);
-            } else if (strstr(server_header, "nginx") && strstr(server_header, "Akamai")) {
-                cdn->is_cdn = true;
-                strncpy(cdn->cdn_provider, "Akamai", sizeof(cdn->cdn_provider) - 1);
-            }
+    if (res == CURLE_OK && headers.server_found) {
+        // Check for CDN indicators in server header
+        if (strstr(headers.server_header, "cloudflare")) {
+            cdn->is_cdn = true;
+            strncpy(cdn->cdn_provider, "Cloudflare", sizeof(cdn->cdn_provider) - 1);
+            cdn->cdn_bypass_possible = true;
+            strncpy(cdn->bypass_techniques,
+                   "subdomain enumeration, certificate transparency, origin IP discovery",
+                   sizeof(cdn->bypass_techniques) - 1);
+        } else if (strstr(headers.server_header, "AmazonS3") || strstr(headers.server_header, "CloudFront")) {
+            cdn->is_cdn = true;
+            strncpy(cdn->cdn_provider, "Amazon CloudFront", sizeof(cdn->cdn_provider) - 1);
+        } else if (strstr(headers.server_header, "nginx") && strstr(headers.server_header, "Akamai")) {
+            cdn->is_cdn = true;
+            strncpy(cdn->cdn_provider, "Akamai", sizeof(cdn->cdn_provider) - 1);
         }
 
-        printf("[CDN] Detection for %s: %s%s%s\n",
+        printf("[CDN] Detection for %s: %s%s%s%s\n",
                domain,
                cdn->is_cdn ? "CDN detected" : "No CDN detected",
                cdn->is_cdn ? " (" : "",

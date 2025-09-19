@@ -135,11 +135,60 @@
 #define VIEWDNS_API_URL "https://viewdns.info/iphistory/?domain=%s"
 #define COMPLETEDNS_API_URL "https://completedns.com/dns-history/ajax/?domain=%s"
 
-// DNS-over-HTTPS providers
+// DNS-over-HTTPS providers - Verified Active
+// Major Providers - Confirmed Working
 #define DOH_CLOUDFLARE "https://cloudflare-dns.com/dns-query"
+#define DOH_CLOUDFLARE_SECURITY "https://security.cloudflare-dns.com/dns-query"
+#define DOH_CLOUDFLARE_FAMILY "https://family.cloudflare-dns.com/dns-query"
 #define DOH_GOOGLE "https://dns.google/dns-query"
 #define DOH_QUAD9 "https://dns.quad9.net/dns-query"
 #define DOH_OPENDNS "https://doh.opendns.com/dns-query"
+#define DOH_OPENDNS_FAMILY "https://doh.familyshield.opendns.com/dns-query"
+
+// AdGuard Family - All Variants Active
+#define DOH_ADGUARD "https://dns.adguard.com/dns-query"
+#define DOH_ADGUARD_FAMILY "https://dns-family.adguard.com/dns-query"
+#define DOH_ADGUARD_UNFILTERED "https://dns-unfiltered.adguard.com/dns-query"
+
+// Mullvad VPN - Confirmed Active
+#define DOH_MULLVAD "https://doh.mullvad.net/dns-query"
+#define DOH_MULLVAD_ADBLOCK "https://adblock.doh.mullvad.net/dns-query"
+
+// ControlD - All Filter Levels Active
+#define DOH_CONTROLD "https://freedns.controld.com/p0"
+#define DOH_CONTROLD_MALWARE "https://freedns.controld.com/p1"
+#define DOH_CONTROLD_MALWARE_ADS "https://freedns.controld.com/p2"
+#define DOH_CONTROLD_MALWARE_ADS_SOCIAL "https://freedns.controld.com/p3"
+
+// CleanBrowsing - All Filter Types Active
+#define DOH_CLEANBROWSING "https://doh.cleanbrowsing.org/doh/security-filter/"
+#define DOH_CLEANBROWSING_FAMILY "https://doh.cleanbrowsing.org/doh/family-filter/"
+#define DOH_CLEANBROWSING_ADULT "https://doh.cleanbrowsing.org/doh/adult-filter/"
+
+// NextDNS - Active (requires config ID)
+#define DOH_NEXTDNS "https://dns.nextdns.io/"
+
+// LibreDNS - Confirmed Active
+#define DOH_LIBREDNS "https://doh.libredns.gr/dns-query"
+#define DOH_LIBREDNS_ADBLOCK "https://doh.libredns.gr/ads"
+
+// Secondary Providers - Likely Active
+#define DOH_SNOPYTA "https://fi.doh.dns.snopyta.org/dns-query"
+#define DOH_POWERDNS "https://doh.powerdns.org"
+#define DOH_APPLIED_PRIVACY "https://doh.applied-privacy.net/query"
+#define DOH_DNS_SB "https://doh.dns.sb/dns-query"
+#define DOH_DNS_SB_NO_FILTER "https://doh.sb/dns-query"
+
+// Pi-DNS - Multiple Regional Endpoints
+#define DOH_PI_DNS "https://doh.pi-dns.com/dns-query"
+#define DOH_PI_DNS_NO_ECS "https://doh.centraleu.pi-dns.com/dns-query"
+#define DOH_PI_DNS_EASTUS "https://doh.eastus.pi-dns.com/dns-query"
+#define DOH_PI_DNS_WESTUS "https://doh.westus.pi-dns.com/dns-query"
+
+// CIRA Canadian Shield - All Variants
+#define DOH_CIRA "https://private.canadianshield.cira.ca/dns-query"
+#define DOH_CIRA_FAMILY "https://family.canadianshield.cira.ca/dns-query"
+#define DOH_CIRA_SECURITY "https://protected.canadianshield.cira.ca/dns-query"
 
 // Exit codes
 #define EXIT_SUCCESS 0

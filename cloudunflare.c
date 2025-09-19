@@ -33,6 +33,14 @@
 #include <json-c/json.h>
 #include "dns_enhanced.h"
 
+#ifdef RECON_MODULES_ENABLED
+#include "recon_modules/common/recon_common.h"
+#include "recon_modules/dns_zone_transfer/dns_zone_transfer.h"
+#include "recon_modules/dns_bruteforce/dns_bruteforce.h"
+#include "recon_modules/http_banner/http_banner.h"
+#include "recon_modules/port_scanner/port_scanner.h"
+#endif
+
 #define VERSION "2.0-Enhanced"
 #define MAX_DOMAIN_LEN 256
 #define MAX_SUBDOMAIN_LEN 512
@@ -777,6 +785,109 @@ void cleanup_recon_session(struct recon_session *session) {
     pthread_mutex_destroy(&session->session_mutex);
 }
 
+#ifdef RECON_MODULES_ENABLED
+// Perform advanced reconnaissance using API-free modules
+int perform_advanced_reconnaissance(struct recon_session *session, const char *domain) {
+    printf("[RECON] Initializing advanced reconnaissance modules for %s\n", domain);
+
+    int total_results = 0;
+
+    // Sub-phase 5.1: DNS Zone Transfer Enumeration
+    if (FEATURE_DNS_ZONE_TRANSFER) {
+        printf("\n--- Sub-phase 5.1: DNS Zone Transfer ---\n");
+        zone_transfer_context_t zone_ctx;
+
+        if (zone_transfer_init_context(&zone_ctx) == 0) {
+            int zone_results = zone_transfer_execute(&zone_ctx, domain);
+            if (zone_results > 0) {
+                printf("[RECON] Zone transfer successful: %d records discovered\n", zone_results);
+                zone_transfer_print_results(&zone_ctx);
+                total_results += zone_results;
+            } else {
+                printf("[RECON] Zone transfer not available or refused\n");
+            }
+            zone_transfer_cleanup_context(&zone_ctx);
+        }
+
+        // OPSEC delay between modules
+        usleep(RECON_OPSEC_MIN_DELAY_MS * 1000);
+    }
+
+    // Sub-phase 5.2: Enhanced DNS Brute-Force
+    if (FEATURE_DNS_BRUTEFORCE_ENHANCED) {
+        printf("\n--- Sub-phase 5.2: Enhanced DNS Brute-Force ---\n");
+        bruteforce_context_t brute_ctx;
+
+        if (bruteforce_init_context(&brute_ctx) == 0) {
+            bruteforce_set_target(&brute_ctx, domain);
+            int brute_results = bruteforce_execute(&brute_ctx);
+            if (brute_results > 0) {
+                printf("[RECON] Brute-force successful: %d subdomains discovered\n", brute_results);
+                bruteforce_print_results(&brute_ctx);
+                total_results += brute_results;
+            }
+            bruteforce_cleanup_context(&brute_ctx);
+        }
+
+        usleep(RECON_OPSEC_MIN_DELAY_MS * 1000);
+    }
+
+    // Sub-phase 5.3: HTTP Banner Grabbing and SSL Analysis
+    if (FEATURE_HTTP_BANNER_GRABBING && FEATURE_SSL_ANALYSIS) {
+        printf("\n--- Sub-phase 5.3: HTTP Banner Grabbing ---\n");
+        http_banner_context_t banner_ctx;
+
+        if (http_banner_init_context(&banner_ctx) == 0) {
+            char urls[3][256];
+            snprintf(urls[0], sizeof(urls[0]), "http://%s", domain);
+            snprintf(urls[1], sizeof(urls[1]), "https://%s", domain);
+            snprintf(urls[2], sizeof(urls[2]), "https://www.%s", domain);
+
+            const char *url_list[] = {urls[0], urls[1], urls[2]};
+            int banner_results = http_banner_grab_multiple(&banner_ctx, url_list, 3);
+            if (banner_results > 0) {
+                printf("[RECON] HTTP banner grabbing successful: %d responses\n", banner_results);
+                http_banner_print_summary(&banner_ctx);
+                total_results += banner_results;
+            }
+            http_banner_cleanup_context(&banner_ctx);
+        }
+
+        usleep(RECON_OPSEC_MIN_DELAY_MS * 1000);
+    }
+
+    // Sub-phase 5.4: Port Scanning
+    if (FEATURE_PORT_SCANNING) {
+        printf("\n--- Sub-phase 5.4: Port Scanning ---\n");
+        port_scanner_context_t port_ctx;
+
+        if (port_scanner_init_context(&port_ctx) == 0) {
+            // Configure common ports for web services
+            port_scanner_add_port_range(&port_ctx.config, 80, 80, SCAN_TYPE_TCP_CONNECT);
+            port_scanner_add_port_range(&port_ctx.config, 443, 443, SCAN_TYPE_TCP_CONNECT);
+            port_scanner_add_port_range(&port_ctx.config, 8080, 8080, SCAN_TYPE_TCP_CONNECT);
+            port_scanner_add_port_range(&port_ctx.config, 8443, 8443, SCAN_TYPE_TCP_CONNECT);
+            port_scanner_add_port_range(&port_ctx.config, 21, 25, SCAN_TYPE_TCP_CONNECT);
+            port_scanner_add_port_range(&port_ctx.config, 53, 53, SCAN_TYPE_UDP);
+
+            host_scan_result_t scan_result;
+            int port_results = port_scanner_scan_host(&port_ctx, domain, &scan_result);
+            if (port_results > 0) {
+                printf("[RECON] Port scanning successful: %d open ports\n", scan_result.open_ports);
+                port_scanner_print_host_result(&scan_result);
+                total_results += scan_result.open_ports;
+            }
+            port_scanner_cleanup_context(&port_ctx);
+        }
+    }
+
+    printf("\n[RECON] Advanced reconnaissance completed\n");
+    printf("[RECON] Total results discovered: %d\n", total_results);
+
+    return total_results;
+}
+#endif
+
 int main(int argc, char *argv[]) {
     char domain[MAX_DOMAIN_LEN];
     struct recon_session session;
@@ -840,6 +951,12 @@ int main(int argc, char *argv[]) {
     // Phase 4: OSINT data collection
     printf("\n=== Phase 4: OSINT Intelligence Gathering ===\n");
     query_viewdns_api(&session, domain);
+
+#ifdef RECON_MODULES_ENABLED
+    // Phase 5: Advanced Reconnaissance (API-free modules)
+    printf("\n=== Phase 5: Advanced Reconnaissance Modules ===\n");
+    perform_advanced_reconnaissance(&session, domain);
+#endif
 
     // Check for operational security issues
     adaptive_evasion_response(&session);

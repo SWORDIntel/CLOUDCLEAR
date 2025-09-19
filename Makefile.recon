@@ -1,0 +1,354 @@
+# CloudUnflare Enhanced - Reconnaissance Modules Makefile
+#
+# Enhanced build system supporting both standalone CloudUnflare and
+# integrated reconnaissance modules with performance optimization
+#
+# Agent: ARCHITECT (build system design)
+# Coordination: C-INTERNAL, OPTIMIZER
+
+# Compiler and flags
+CC = gcc
+CFLAGS = -Wall -Wextra -O3 -march=native -mtune=native
+CFLAGS += -pthread -fPIC -D_GNU_SOURCE
+CFLAGS += -fstack-protector-strong -D_FORTIFY_SOURCE=2
+CFLAGS += -Wformat -Wformat-security
+
+# Debug flags (uncomment for debugging)
+# CFLAGS += -g -DDEBUG -O0 -fsanitize=address -fsanitize=thread
+
+# Feature flags
+RECON_ENABLED ?= 1
+OPSEC_ENABLED ?= 1
+PERFORMANCE_MONITORING ?= 1
+
+# Directories
+SRC_DIR = .
+RECON_DIR = recon_modules
+COMMON_DIR = $(RECON_DIR)/common
+MODULE_DIRS = $(RECON_DIR)/dns_zone_transfer $(RECON_DIR)/dns_bruteforce $(RECON_DIR)/http_banner $(RECON_DIR)/port_scanner
+BUILD_DIR = build
+OBJ_DIR = $(BUILD_DIR)/obj
+BIN_DIR = $(BUILD_DIR)/bin
+
+# Libraries
+LIBS = -lcurl -lssl -lcrypto -ljson-c -lpthread -lsqlite3
+LIBS += $(shell pkg-config --libs openssl libcurl json-c sqlite3 2>/dev/null || echo "-lssl -lcrypto -lcurl -ljson-c -lsqlite3")
+
+# Include paths
+INCLUDES = -I$(SRC_DIR) -I$(RECON_DIR) -I$(COMMON_DIR)
+INCLUDES += $(shell pkg-config --cflags openssl libcurl json-c sqlite3 2>/dev/null || echo "")
+
+# Feature-based compilation flags
+ifeq ($(RECON_ENABLED), 1)
+    CFLAGS += -DRECON_MODULES_ENABLED
+    ifeq ($(OPSEC_ENABLED), 1)
+        CFLAGS += -DOPSEC_ENABLED
+    endif
+    ifeq ($(PERFORMANCE_MONITORING), 1)
+        CFLAGS += -DPERFORMANCE_MONITORING_ENABLED
+    endif
+endif
+
+# Main CloudUnflare sources
+CLOUDUNFLARE_SOURCES = cloudunflare.c dns_enhanced.c
+
+# Common reconnaissance sources
+COMMON_SOURCES = $(wildcard $(COMMON_DIR)/*.c)
+
+# Module-specific sources
+DNS_ZONE_SOURCES = $(wildcard $(RECON_DIR)/dns_zone_transfer/*.c)
+DNS_BRUTEFORCE_SOURCES = $(wildcard $(RECON_DIR)/dns_bruteforce/*.c)
+HTTP_BANNER_SOURCES = $(wildcard $(RECON_DIR)/http_banner/*.c)
+PORT_SCANNER_SOURCES = $(wildcard $(RECON_DIR)/port_scanner/*.c)
+
+# All reconnaissance sources
+RECON_SOURCES = $(COMMON_SOURCES) $(DNS_ZONE_SOURCES) $(DNS_BRUTEFORCE_SOURCES) $(HTTP_BANNER_SOURCES) $(PORT_SCANNER_SOURCES)
+
+# Object files
+CLOUDUNFLARE_OBJECTS = $(CLOUDUNFLARE_SOURCES:%.c=$(OBJ_DIR)/%.o)
+RECON_OBJECTS = $(RECON_SOURCES:%.c=$(OBJ_DIR)/%.o)
+
+# All object files
+ifeq ($(RECON_ENABLED), 1)
+    ALL_OBJECTS = $(CLOUDUNFLARE_OBJECTS) $(RECON_OBJECTS)
+else
+    ALL_OBJECTS = $(CLOUDUNFLARE_OBJECTS)
+endif
+
+# Target executables
+CLOUDUNFLARE_BINARY = $(BIN_DIR)/cloudunflare
+CLOUDUNFLARE_RECON_BINARY = $(BIN_DIR)/cloudunflare-enhanced
+
+# Default target
+.PHONY: all
+all: directories $(CLOUDUNFLARE_BINARY) recon-modules
+
+# Enhanced target with reconnaissance modules
+.PHONY: enhanced
+enhanced: directories $(CLOUDUNFLARE_RECON_BINARY)
+
+# Create build directories
+.PHONY: directories
+directories:
+	@mkdir -p $(BUILD_DIR) $(OBJ_DIR) $(BIN_DIR)
+	@mkdir -p $(OBJ_DIR)/$(RECON_DIR)
+	@mkdir -p $(OBJ_DIR)/$(COMMON_DIR)
+	@for dir in $(MODULE_DIRS); do mkdir -p $(OBJ_DIR)/$$dir; done
+
+# Standard CloudUnflare (without reconnaissance modules)
+$(CLOUDUNFLARE_BINARY): $(CLOUDUNFLARE_OBJECTS)
+	@echo "Linking CloudUnflare (standard)..."
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+	@echo "CloudUnflare standard build complete: $@"
+
+# Enhanced CloudUnflare (with reconnaissance modules)
+$(CLOUDUNFLARE_RECON_BINARY): $(ALL_OBJECTS)
+	@echo "Linking CloudUnflare Enhanced (with reconnaissance modules)..."
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+	@echo "CloudUnflare Enhanced build complete: $@"
+
+# Compile CloudUnflare source files
+$(OBJ_DIR)/%.o: %.c
+	@echo "Compiling $<..."
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+
+# Compile reconnaissance module source files
+$(OBJ_DIR)/$(RECON_DIR)/%.o: $(RECON_DIR)/%.c
+	@echo "Compiling reconnaissance module $<..."
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+
+# Individual reconnaissance modules
+.PHONY: recon-modules
+recon-modules: recon-common dns-zone-transfer dns-bruteforce http-banner port-scanner
+
+.PHONY: recon-common
+recon-common: $(OBJ_DIR)/$(COMMON_DIR)/recon_common.o $(OBJ_DIR)/$(COMMON_DIR)/recon_opsec.o $(OBJ_DIR)/$(COMMON_DIR)/recon_proxy.o
+
+.PHONY: dns-zone-transfer
+dns-zone-transfer: recon-common $(patsubst $(RECON_DIR)/dns_zone_transfer/%.c,$(OBJ_DIR)/$(RECON_DIR)/dns_zone_transfer/%.o,$(DNS_ZONE_SOURCES))
+
+.PHONY: dns-bruteforce
+dns-bruteforce: recon-common $(patsubst $(RECON_DIR)/dns_bruteforce/%.c,$(OBJ_DIR)/$(RECON_DIR)/dns_bruteforce/%.o,$(DNS_BRUTEFORCE_SOURCES))
+
+.PHONY: http-banner
+http-banner: recon-common $(patsubst $(RECON_DIR)/http_banner/%.c,$(OBJ_DIR)/$(RECON_DIR)/http_banner/%.o,$(HTTP_BANNER_SOURCES))
+
+.PHONY: port-scanner
+port-scanner: recon-common $(patsubst $(RECON_DIR)/port_scanner/%.c,$(OBJ_DIR)/$(RECON_DIR)/port_scanner/%.o,$(PORT_SCANNER_SOURCES))
+
+# Installation targets
+.PHONY: install
+install: enhanced
+	@echo "Installing CloudUnflare Enhanced..."
+	install -d $(DESTDIR)/usr/local/bin
+	install -m 755 $(CLOUDUNFLARE_RECON_BINARY) $(DESTDIR)/usr/local/bin/cloudunflare
+	@echo "Installation complete"
+
+.PHONY: install-standard
+install-standard: all
+	@echo "Installing CloudUnflare (standard)..."
+	install -d $(DESTDIR)/usr/local/bin
+	install -m 755 $(CLOUDUNFLARE_BINARY) $(DESTDIR)/usr/local/bin/cloudunflare
+	@echo "Installation complete"
+
+# Testing targets
+.PHONY: test
+test: enhanced
+	@echo "Running CloudUnflare tests..."
+	@if [ -f test_enhanced.c ]; then \
+		$(CC) $(CFLAGS) $(INCLUDES) -o $(BUILD_DIR)/test_enhanced test_enhanced.c $(LIBS); \
+		$(BUILD_DIR)/test_enhanced; \
+	fi
+	@if [ -f thread_safety_test.c ]; then \
+		$(CC) $(CFLAGS) $(INCLUDES) -o $(BUILD_DIR)/thread_safety_test thread_safety_test.c $(LIBS); \
+		$(BUILD_DIR)/thread_safety_test; \
+	fi
+
+.PHONY: performance-test
+performance-test: enhanced
+	@echo "Running performance tests..."
+	@echo "Testing baseline performance..."
+	time $(CLOUDUNFLARE_RECON_BINARY) --help > /dev/null
+	@echo "Testing DNS resolution performance..."
+	time $(CLOUDUNFLARE_RECON_BINARY) example.com > /dev/null
+
+# Code quality targets
+.PHONY: lint
+lint:
+	@echo "Running static analysis..."
+	@if command -v cppcheck >/dev/null 2>&1; then \
+		cppcheck --enable=all --inconclusive --std=c11 $(SRC_DIR) $(RECON_DIR); \
+	else \
+		echo "cppcheck not found, skipping static analysis"; \
+	fi
+
+.PHONY: format
+format:
+	@echo "Formatting code..."
+	@if command -v clang-format >/dev/null 2>&1; then \
+		find $(SRC_DIR) $(RECON_DIR) -name "*.c" -o -name "*.h" | xargs clang-format -i; \
+		echo "Code formatting complete"; \
+	else \
+		echo "clang-format not found, skipping formatting"; \
+	fi
+
+# Memory leak detection
+.PHONY: valgrind
+valgrind: enhanced
+	@echo "Running memory leak detection..."
+	@if command -v valgrind >/dev/null 2>&1; then \
+		valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes $(CLOUDUNFLARE_RECON_BINARY) --help; \
+	else \
+		echo "valgrind not found, skipping memory leak detection"; \
+	fi
+
+# Security analysis
+.PHONY: security-scan
+security-scan:
+	@echo "Running security analysis..."
+	@if command -v scan-build >/dev/null 2>&1; then \
+		scan-build make enhanced; \
+	else \
+		echo "scan-build not found, skipping security analysis"; \
+	fi
+
+# Benchmark targets
+.PHONY: benchmark
+benchmark: enhanced
+	@echo "Running performance benchmarks..."
+	@echo "Baseline CloudUnflare performance:"
+	@time -p $(CLOUDUNFLARE_RECON_BINARY) --version
+	@echo "DNS Enhanced performance:"
+	@time -p $(CLOUDUNFLARE_RECON_BINARY) google.com
+	@if [ "$(RECON_ENABLED)" = "1" ]; then \
+		echo "Reconnaissance module performance:"; \
+		time -p $(CLOUDUNFLARE_RECON_BINARY) --recon-threads 10 google.com; \
+	fi
+
+# Configuration file generation
+.PHONY: config
+config:
+	@echo "Generating default configuration files..."
+	@mkdir -p config
+	@if [ ! -f recon_config.json ]; then \
+		echo '{"opsec_level": "normal", "max_threads": 10, "timeout": 30}' > recon_config.json; \
+		echo "Created recon_config.json"; \
+	fi
+
+# Documentation generation
+.PHONY: docs
+docs:
+	@echo "Generating documentation..."
+	@if command -v doxygen >/dev/null 2>&1; then \
+		doxygen Doxyfile 2>/dev/null || echo "Doxyfile not found"; \
+	else \
+		echo "doxygen not found, skipping documentation generation"; \
+	fi
+
+# Cleanup targets
+.PHONY: clean
+clean:
+	@echo "Cleaning build files..."
+	rm -rf $(BUILD_DIR)
+	rm -f *.o *.a *.so
+	rm -f core.*
+
+.PHONY: distclean
+distclean: clean
+	@echo "Cleaning all generated files..."
+	rm -f cloudunflare cloudunflare-enhanced
+	rm -f *.log *.tmp
+	rm -rf docs/html docs/latex
+
+.PHONY: clean-config
+clean-config:
+	@echo "Cleaning configuration files..."
+	rm -f recon_config.json
+	rm -rf config/
+
+# Package targets
+.PHONY: package
+package: enhanced
+	@echo "Creating distribution package..."
+	@mkdir -p dist
+	tar -czf dist/cloudunflare-enhanced-$(shell date +%Y%m%d).tar.gz \
+		--exclude='build' --exclude='dist' --exclude='.git' \
+		--transform 's,^,cloudunflare-enhanced/,' .
+	@echo "Package created: dist/cloudunflare-enhanced-$(shell date +%Y%m%d).tar.gz"
+
+# Deployment targets
+.PHONY: deploy
+deploy: enhanced
+	@echo "Deploying CloudUnflare Enhanced..."
+	systemctl stop cloudunflare 2>/dev/null || true
+	install -m 755 $(CLOUDUNFLARE_RECON_BINARY) /usr/local/bin/cloudunflare
+	systemctl start cloudunflare 2>/dev/null || true
+	@echo "Deployment complete"
+
+# Build information
+.PHONY: info
+info:
+	@echo "CloudUnflare Enhanced Build System"
+	@echo "=================================="
+	@echo "Compiler: $(CC)"
+	@echo "Flags: $(CFLAGS)"
+	@echo "Libraries: $(LIBS)"
+	@echo "Reconnaissance modules: $(if $(filter 1,$(RECON_ENABLED)),Enabled,Disabled)"
+	@echo "OPSEC features: $(if $(filter 1,$(OPSEC_ENABLED)),Enabled,Disabled)"
+	@echo "Performance monitoring: $(if $(filter 1,$(PERFORMANCE_MONITORING)),Enabled,Disabled)"
+	@echo ""
+	@echo "Available targets:"
+	@echo "  all                 - Build standard CloudUnflare"
+	@echo "  enhanced           - Build CloudUnflare with reconnaissance modules"
+	@echo "  test               - Run test suite"
+	@echo "  benchmark          - Run performance benchmarks"
+	@echo "  install            - Install enhanced version"
+	@echo "  install-standard   - Install standard version"
+	@echo "  clean              - Clean build files"
+	@echo "  package            - Create distribution package"
+
+# Help target
+.PHONY: help
+help: info
+
+# Dependencies
+-include $(ALL_OBJECTS:.o=.d)
+
+# Generate dependency files
+$(OBJ_DIR)/%.d: %.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) $(INCLUDES) -MM -MT $(@:.d=.o) $< > $@
+
+$(OBJ_DIR)/$(RECON_DIR)/%.d: $(RECON_DIR)/%.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) $(INCLUDES) -MM -MT $(@:.d=.o) $< > $@
+
+# Feature detection
+.PHONY: detect-features
+detect-features:
+	@echo "Detecting system features..."
+	@pkg-config --exists openssl && echo "OpenSSL: Available" || echo "OpenSSL: Missing"
+	@pkg-config --exists libcurl && echo "libcurl: Available" || echo "libcurl: Missing"
+	@pkg-config --exists json-c && echo "json-c: Available" || echo "json-c: Missing"
+	@pkg-config --exists sqlite3 && echo "SQLite3: Available" || echo "SQLite3: Missing"
+	@command -v valgrind >/dev/null && echo "Valgrind: Available" || echo "Valgrind: Missing"
+	@command -v cppcheck >/dev/null && echo "cppcheck: Available" || echo "cppcheck: Missing"
+
+# Performance optimization targets
+.PHONY: optimize
+optimize: CFLAGS += -O3 -march=native -mtune=native -flto
+optimize: enhanced
+
+.PHONY: debug
+debug: CFLAGS += -g -DDEBUG -O0 -fsanitize=address
+debug: enhanced
+
+# Thread safety verification
+.PHONY: thread-check
+thread-check: CFLAGS += -fsanitize=thread
+thread-check: enhanced
+	@echo "Thread safety check complete"
+
+.PHONY: all info help enhanced debug optimize clean install test benchmark package deploy

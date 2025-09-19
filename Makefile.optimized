@@ -1,0 +1,357 @@
+# CloudUnflare Enhanced v2.0 - OPTIMIZER Agent Performance Makefile
+#
+# Intel Meteor Lake Optimized Build System
+# Architecture: Intel Core Ultra 7 165H (10 P-cores + 10 E-cores)
+# Target Performance: 10,000+ queries/second aggregate, <500MB memory
+#
+# Agent: OPTIMIZER (performance tuning)
+# Coordination: C-INTERNAL, ARCHITECT, SECURITY
+# Phase 1 Complete: CONSTRUCTOR, C-INTERNAL, SECURITY, ARCHITECT
+
+# Compiler Selection and Version
+CC = gcc
+CXX = g++
+CFLAGS_BASE = -Wall -Wextra -Wformat -Wformat-security -Wvla
+CXXFLAGS_BASE = $(CFLAGS_BASE) -std=c++17
+
+# Intel Meteor Lake Specific Optimizations
+ARCH_FLAGS = -march=alderlake -mtune=alderlake
+ARCH_FLAGS += -mavx2 -mfma -mbmi -mbmi2 -mlzcnt -mpopcnt
+ARCH_FLAGS += -maes -mpclmul -msha -msse4.2 -msse4.1
+
+# Performance Optimization Flags
+PERF_FLAGS = -O3 -flto=auto -ffast-math -funroll-loops
+PERF_FLAGS += -fomit-frame-pointer -fprefetch-loop-arrays
+PERF_FLAGS += -ftree-vectorize -fvect-cost-model=dynamic
+PERF_FLAGS += -mprefer-vector-width=256 -falign-functions=32
+
+# Memory Optimization Flags
+MEMORY_FLAGS = -fstack-protector-strong -D_FORTIFY_SOURCE=2
+MEMORY_FLAGS += -fno-plt -fno-semantic-interposition
+MEMORY_FLAGS += -malign-data=cacheline -mno-vzeroupper
+
+# Threading and Concurrency Optimizations
+THREAD_FLAGS = -pthread -fopenmp
+THREAD_FLAGS += -fstack-clash-protection -fcf-protection
+
+# Security Flags (SECURITY agent requirements)
+SECURITY_FLAGS = -fPIE -pie -Wl,-z,relro,-z,now
+SECURITY_FLAGS += -fstack-clash-protection -fcf-protection
+SECURITY_FLAGS += -D_GLIBCXX_ASSERTIONS
+
+# Feature Detection and Conditional Compilation
+FEATURE_FLAGS = -D_GNU_SOURCE -DHAS_AVX2 -DHAS_FMA -DHAS_AES
+FEATURE_FLAGS += -DINTEL_METEOR_LAKE -DHYBRID_ARCHITECTURE
+FEATURE_FLAGS += -DMAX_P_CORES=10 -DMAX_E_CORES=10
+
+# Debug and Profiling (conditional)
+DEBUG_FLAGS = -g -DDEBUG -O0 -fsanitize=address -fsanitize=thread
+PROFILE_FLAGS = -pg -fprofile-arcs -ftest-coverage
+
+# Build Type Configuration
+BUILD_TYPE ?= release
+ifeq ($(BUILD_TYPE), debug)
+    OPT_FLAGS = $(DEBUG_FLAGS)
+else ifeq ($(BUILD_TYPE), profile)
+    OPT_FLAGS = -O2 $(PROFILE_FLAGS)
+else
+    OPT_FLAGS = $(PERF_FLAGS)
+endif
+
+# Final Compiler Flags
+CFLAGS = $(CFLAGS_BASE) $(ARCH_FLAGS) $(OPT_FLAGS) $(MEMORY_FLAGS)
+CFLAGS += $(THREAD_FLAGS) $(SECURITY_FLAGS) $(FEATURE_FLAGS)
+CXXFLAGS = $(CXXFLAGS_BASE) $(ARCH_FLAGS) $(OPT_FLAGS) $(MEMORY_FLAGS)
+CXXFLAGS += $(THREAD_FLAGS) $(SECURITY_FLAGS) $(FEATURE_FLAGS)
+
+# Linker Optimizations
+LDFLAGS = -Wl,--as-needed -Wl,--gc-sections -Wl,--sort-common
+LDFLAGS += -Wl,--hash-style=gnu -Wl,--build-id=sha1
+LDFLAGS += -flto=auto -fuse-linker-plugin
+
+# Feature Control
+RECON_ENABLED ?= 1
+OPSEC_ENABLED ?= 1
+PERFORMANCE_MONITORING ?= 1
+SIMD_ACCELERATION ?= 1
+MEMORY_POOL_ENABLED ?= 1
+LOCKFREE_ENABLED ?= 1
+
+# Directories
+SRC_DIR = .
+RECON_DIR = recon_modules
+COMMON_DIR = $(RECON_DIR)/common
+PERF_DIR = performance_modules
+BUILD_DIR = build_optimized
+OBJ_DIR = $(BUILD_DIR)/obj
+BIN_DIR = $(BUILD_DIR)/bin
+LIB_DIR = $(BUILD_DIR)/lib
+
+# Libraries with optimized linking order
+SYSTEM_LIBS = -lm -ldl -lrt
+CRYPTO_LIBS = -lssl -lcrypto
+NETWORK_LIBS = -lcurl -ljson-c
+DATABASE_LIBS = -lsqlite3
+THREAD_LIBS = -lpthread -lgomp
+LIBS = $(CRYPTO_LIBS) $(NETWORK_LIBS) $(DATABASE_LIBS) $(THREAD_LIBS) $(SYSTEM_LIBS)
+
+# Library Detection
+LIBS += $(shell pkg-config --libs openssl libcurl json-c sqlite3 2>/dev/null)
+
+# Include Paths
+INCLUDES = -I$(SRC_DIR) -I$(RECON_DIR) -I$(COMMON_DIR) -I$(PERF_DIR)
+INCLUDES += $(shell pkg-config --cflags openssl libcurl json-c sqlite3 2>/dev/null)
+
+# Feature-based Compilation
+ifeq ($(RECON_ENABLED), 1)
+    CFLAGS += -DRECON_MODULES_ENABLED
+    ifeq ($(OPSEC_ENABLED), 1)
+        CFLAGS += -DOPSEC_ENABLED
+    endif
+    ifeq ($(PERFORMANCE_MONITORING), 1)
+        CFLAGS += -DPERFORMANCE_MONITORING_ENABLED
+    endif
+endif
+
+ifeq ($(SIMD_ACCELERATION), 1)
+    CFLAGS += -DSIMD_ACCELERATION_ENABLED
+endif
+
+ifeq ($(MEMORY_POOL_ENABLED), 1)
+    CFLAGS += -DMEMORY_POOL_ENABLED
+endif
+
+ifeq ($(LOCKFREE_ENABLED), 1)
+    CFLAGS += -DLOCKFREE_ENABLED
+endif
+
+# Source Files
+CLOUDUNFLARE_SOURCES = cloudunflare.c dns_enhanced.c
+COMMON_SOURCES = $(wildcard $(COMMON_DIR)/*.c)
+PERF_SOURCES = $(wildcard $(PERF_DIR)/*.c)
+
+# Module Sources
+DNS_ZONE_SOURCES = $(wildcard $(RECON_DIR)/dns_zone_transfer/*.c)
+DNS_BRUTEFORCE_SOURCES = $(wildcard $(RECON_DIR)/dns_bruteforce/*.c)
+HTTP_BANNER_SOURCES = $(wildcard $(RECON_DIR)/http_banner/*.c)
+PORT_SCANNER_SOURCES = $(wildcard $(RECON_DIR)/port_scanner/*.c)
+
+# All Sources
+RECON_SOURCES = $(COMMON_SOURCES) $(DNS_ZONE_SOURCES) $(DNS_BRUTEFORCE_SOURCES)
+RECON_SOURCES += $(HTTP_BANNER_SOURCES) $(PORT_SCANNER_SOURCES)
+ALL_SOURCES = $(CLOUDUNFLARE_SOURCES) $(RECON_SOURCES) $(PERF_SOURCES)
+
+# Object Files
+ALL_OBJECTS = $(ALL_SOURCES:%.c=$(OBJ_DIR)/%.o)
+
+# Target Executables
+CLOUDUNFLARE_OPTIMIZED = $(BIN_DIR)/cloudunflare-optimized
+CLOUDUNFLARE_BENCHMARK = $(BIN_DIR)/cloudunflare-benchmark
+
+# Default Target
+.PHONY: all
+all: directories performance-modules $(CLOUDUNFLARE_OPTIMIZED)
+
+# Performance Testing Target
+.PHONY: benchmark
+benchmark: directories performance-modules $(CLOUDUNFLARE_BENCHMARK)
+
+# Create Directories
+.PHONY: directories
+directories:
+	@mkdir -p $(BUILD_DIR) $(OBJ_DIR) $(BIN_DIR) $(LIB_DIR)
+	@mkdir -p $(OBJ_DIR)/$(RECON_DIR) $(OBJ_DIR)/$(COMMON_DIR)
+	@mkdir -p $(OBJ_DIR)/$(PERF_DIR)
+	@for module in dns_zone_transfer dns_bruteforce http_banner port_scanner; do \
+		mkdir -p $(OBJ_DIR)/$(RECON_DIR)/$$module; \
+	done
+
+# Performance Modules Target
+.PHONY: performance-modules
+performance-modules: $(PERF_DIR)/thread_pool_optimized.c $(PERF_DIR)/memory_pool.c $(PERF_DIR)/simd_utils.c $(PERF_DIR)/lockfree_queue.c $(PERF_DIR)/cpu_affinity.c $(PERF_DIR)/performance_monitor.c
+
+# Main Optimized Binary
+$(CLOUDUNFLARE_OPTIMIZED): $(ALL_OBJECTS)
+	@echo "Linking CloudUnflare Enhanced v2.0 Optimized (Intel Meteor Lake)..."
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS)
+	@echo "CloudUnflare Optimized build complete: $@"
+	@strip --strip-unneeded $@
+	@echo "Binary stripped for optimal size"
+
+# Benchmark Binary (with profiling hooks)
+$(CLOUDUNFLARE_BENCHMARK): $(ALL_OBJECTS)
+	@echo "Linking CloudUnflare Benchmark Binary..."
+	$(CC) $(CFLAGS) -DBENCHMARK_MODE $(LDFLAGS) -o $@ $^ $(LIBS)
+	@echo "CloudUnflare Benchmark build complete: $@"
+
+# Object File Compilation
+$(OBJ_DIR)/%.o: %.c
+	@echo "Compiling (optimized): $<"
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+
+# Performance Module Compilation
+$(OBJ_DIR)/$(PERF_DIR)/%.o: $(PERF_DIR)/%.c
+	@echo "Compiling performance module: $<"
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+
+# Reconnaissance Module Compilation
+$(OBJ_DIR)/$(RECON_DIR)/%.o: $(RECON_DIR)/%.c
+	@echo "Compiling reconnaissance module: $<"
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+
+# Performance Testing Targets
+.PHONY: performance-test
+performance-test: $(CLOUDUNFLARE_OPTIMIZED)
+	@echo "Running Optimized Performance Tests..."
+	@echo "==================================="
+	@echo "CPU Architecture Test:"
+	@$(CLOUDUNFLARE_OPTIMIZED) --cpu-info
+	@echo ""
+	@echo "Memory Pool Performance:"
+	@$(CLOUDUNFLARE_OPTIMIZED) --test-memory-pool
+	@echo ""
+	@echo "Thread Pool Performance:"
+	@$(CLOUDUNFLARE_OPTIMIZED) --test-thread-pool
+	@echo ""
+	@echo "SIMD Acceleration Test:"
+	@$(CLOUDUNFLARE_OPTIMIZED) --test-simd
+	@echo ""
+	@echo "DNS Performance Benchmark:"
+	@time -p $(CLOUDUNFLARE_OPTIMIZED) --benchmark-dns example.com
+	@echo ""
+	@echo "Reconnaissance Module Performance:"
+	@time -p $(CLOUDUNFLARE_OPTIMIZED) --benchmark-recon example.com
+
+# Comprehensive Benchmark Suite
+.PHONY: benchmark-suite
+benchmark-suite: $(CLOUDUNFLARE_BENCHMARK)
+	@echo "Running Comprehensive Benchmark Suite..."
+	@echo "======================================="
+	@$(CLOUDUNFLARE_BENCHMARK) --benchmark-all --threads 50 --duration 60
+	@echo ""
+	@echo "Memory Usage Analysis:"
+	@valgrind --tool=massif --massif-out-file=$(BUILD_DIR)/massif.out $(CLOUDUNFLARE_BENCHMARK) --benchmark-memory
+	@echo ""
+	@echo "Cache Performance Analysis:"
+	@perf stat -e cache-references,cache-misses,instructions,cycles $(CLOUDUNFLARE_BENCHMARK) --benchmark-cache
+
+# CPU Affinity Testing
+.PHONY: test-affinity
+test-affinity: $(CLOUDUNFLARE_OPTIMIZED)
+	@echo "Testing CPU Affinity and Hybrid Architecture..."
+	@echo "=============================================="
+	@echo "P-Core Assignment Test:"
+	@taskset -c 0-9 $(CLOUDUNFLARE_OPTIMIZED) --test-p-cores
+	@echo ""
+	@echo "E-Core Assignment Test:"
+	@taskset -c 10-19 $(CLOUDUNFLARE_OPTIMIZED) --test-e-cores
+	@echo ""
+	@echo "Hybrid Workload Distribution:"
+	@$(CLOUDUNFLARE_OPTIMIZED) --test-hybrid-scheduling
+
+# Memory Performance Testing
+.PHONY: test-memory
+test-memory: $(CLOUDUNFLARE_OPTIMIZED)
+	@echo "Memory Performance Testing..."
+	@echo "============================"
+	@echo "Memory Pool Allocation Speed:"
+	@$(CLOUDUNFLARE_OPTIMIZED) --benchmark-allocation
+	@echo ""
+	@echo "Cache-Aligned Data Structures:"
+	@$(CLOUDUNFLARE_OPTIMIZED) --test-cache-alignment
+	@echo ""
+	@echo "Memory Bandwidth Utilization:"
+	@$(CLOUDUNFLARE_OPTIMIZED) --test-memory-bandwidth
+
+# SIMD Performance Testing
+.PHONY: test-simd
+test-simd: $(CLOUDUNFLARE_OPTIMIZED)
+	@echo "SIMD Performance Testing..."
+	@echo "=========================="
+	@echo "AVX2 String Processing:"
+	@$(CLOUDUNFLARE_OPTIMIZED) --benchmark-simd-strings
+	@echo ""
+	@echo "AVX2 Hash Computation:"
+	@$(CLOUDUNFLARE_OPTIMIZED) --benchmark-simd-hash
+	@echo ""
+	@echo "Vectorized DNS Parsing:"
+	@$(CLOUDUNFLARE_OPTIMIZED) --benchmark-simd-dns
+
+# Profiling and Analysis
+.PHONY: profile
+profile: BUILD_TYPE=profile
+profile: $(CLOUDUNFLARE_OPTIMIZED)
+	@echo "Running Profiling Analysis..."
+	@$(CLOUDUNFLARE_OPTIMIZED) --profile-run example.com
+	@gprof $(CLOUDUNFLARE_OPTIMIZED) gmon.out > $(BUILD_DIR)/profile_analysis.txt
+	@echo "Profile analysis saved to $(BUILD_DIR)/profile_analysis.txt"
+
+# Installation with Performance Optimization
+.PHONY: install-optimized
+install-optimized: $(CLOUDUNFLARE_OPTIMIZED)
+	@echo "Installing CloudUnflare Enhanced v2.0 Optimized..."
+	@install -d $(DESTDIR)/usr/local/bin
+	@install -m 755 $(CLOUDUNFLARE_OPTIMIZED) $(DESTDIR)/usr/local/bin/cloudunflare
+	@echo "Optimized installation complete"
+
+# Cleanup Targets
+.PHONY: clean
+clean:
+	@echo "Cleaning optimized build files..."
+	@rm -rf $(BUILD_DIR)
+	@rm -f *.gcda *.gcno gmon.out
+
+.PHONY: distclean
+distclean: clean
+	@echo "Deep cleaning all generated files..."
+	@rm -f cloudunflare-optimized cloudunflare-benchmark
+	@rm -rf performance_modules
+
+# Build Information
+.PHONY: info
+info:
+	@echo "CloudUnflare Enhanced v2.0 - OPTIMIZER Agent Build System"
+	@echo "========================================================"
+	@echo "Target Architecture: $(ARCH_FLAGS)"
+	@echo "Optimization Level: $(OPT_FLAGS)"
+	@echo "Feature Flags: $(FEATURE_FLAGS)"
+	@echo "Security Flags: $(SECURITY_FLAGS)"
+	@echo "Performance Features:"
+	@echo "  - SIMD Acceleration: $(if $(filter 1,$(SIMD_ACCELERATION)),Enabled,Disabled)"
+	@echo "  - Memory Pool: $(if $(filter 1,$(MEMORY_POOL_ENABLED)),Enabled,Disabled)"
+	@echo "  - Lock-Free Structures: $(if $(filter 1,$(LOCKFREE_ENABLED)),Enabled,Disabled)"
+	@echo "  - Intel Meteor Lake Optimization: Enabled"
+	@echo "  - Hybrid P-core/E-core Scheduling: Enabled"
+	@echo ""
+	@echo "Performance Targets:"
+	@echo "  - DNS Queries: 2500+ per second per module"
+	@echo "  - Aggregate Throughput: 10,000+ queries/second"
+	@echo "  - Memory Usage: <500MB total"
+	@echo "  - Thread Efficiency: >90% CPU utilization"
+	@echo "  - Response Latency: <100ms average"
+
+# Help Target
+.PHONY: help
+help: info
+	@echo ""
+	@echo "Available Targets:"
+	@echo "  all                 - Build optimized CloudUnflare"
+	@echo "  benchmark          - Build benchmark version"
+	@echo "  performance-test   - Run performance tests"
+	@echo "  benchmark-suite    - Run comprehensive benchmarks"
+	@echo "  test-affinity      - Test CPU affinity"
+	@echo "  test-memory        - Test memory performance"
+	@echo "  test-simd          - Test SIMD acceleration"
+	@echo "  profile            - Run profiling analysis"
+	@echo "  install-optimized  - Install optimized version"
+	@echo "  clean              - Clean build files"
+
+# Dependency Generation
+-include $(ALL_OBJECTS:.o=.d)
+
+$(OBJ_DIR)/%.d: %.c
+	@mkdir -p $(dir $@)
+	@$(CC) $(CFLAGS) $(INCLUDES) -MM -MT $(@:.d=.o) $< > $@

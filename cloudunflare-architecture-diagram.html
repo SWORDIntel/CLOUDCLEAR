@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CloudUnflare Enhanced v2.0 - Architecture Diagram</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #e8e8e8;
+            overflow-x: auto;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .title {
+            font-size: 2.5em;
+            font-weight: bold;
+            background: linear-gradient(45deg, #00d4ff, #00ff88, #ffaa00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+            animation: titleGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes titleGlow {
+            0% { filter: brightness(1); }
+            100% { filter: brightness(1.2); }
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            color: #a0a0a0;
+            margin-bottom: 15px;
+        }
+
+        .metrics {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .metric {
+            background: rgba(0, 212, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.05); opacity: 1; }
+        }
+
+        .architecture-diagram {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: auto auto auto auto;
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .layer {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 15px;
+            padding: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .layer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .layer:hover::before {
+            left: 100%;
+        }
+
+        .layer:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+            border-color: rgba(0, 212, 255, 0.5);
+        }
+
+        .layer-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #00d4ff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .layer-content {
+            font-size: 0.95em;
+            line-height: 1.6;
+            color: #c0c0c0;
+        }
+
+        .component {
+            background: rgba(255, 255, 255, 0.05);
+            margin: 8px 0;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border-left: 3px solid;
+            transition: all 0.3s ease;
+        }
+
+        .dns-protocol { border-left-color: #00ff88; }
+        .security { border-left-color: #ff4757; }
+        .performance { border-left-color: #ffaa00; }
+        .container-tech { border-left-color: #00d4ff; }
+
+        .component:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        .flow-arrows {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .arrow {
+            position: absolute;
+            width: 50px;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+            animation: flowAnimation 3s ease-in-out infinite;
+        }
+
+        @keyframes flowAnimation {
+            0% { opacity: 0; transform: translateX(-20px); }
+            50% { opacity: 1; }
+            100% { opacity: 0; transform: translateX(20px); }
+        }
+
+        .network-topology {
+            grid-column: 1 / -1;
+            background: radial-gradient(circle at center, rgba(0, 212, 255, 0.1) 0%, rgba(0, 212, 255, 0.05) 50%, transparent 100%);
+        }
+
+        .network-nodes {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .network-node {
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, rgba(0, 212, 255, 0.3) 0%, rgba(0, 212, 255, 0.1) 70%);
+            border: 2px solid rgba(0, 212, 255, 0.5);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9em;
+            font-weight: bold;
+            animation: nodeGlow 4s ease-in-out infinite;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .network-node:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.6);
+        }
+
+        @keyframes nodeGlow {
+            0%, 100% { box-shadow: 0 0 20px rgba(0, 212, 255, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(0, 212, 255, 0.7); }
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #00ff88;
+            margin-left: 10px;
+            animation: statusBlink 1.5s infinite;
+        }
+
+        @keyframes statusBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            margin: 5% auto;
+            padding: 30px;
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            border-radius: 15px;
+            width: 80%;
+            max-width: 600px;
+            color: #e8e8e8;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .close:hover {
+            color: #00d4ff;
+        }
+
+        .icon {
+            font-size: 1.5em;
+            margin-right: 10px;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 3px;
+        }
+
+        @media (max-width: 768px) {
+            .architecture-diagram {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .network-nodes {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">CloudUnflare Enhanced v2.0</h1>
+            <p class="subtitle">Advanced DNS Reconnaissance & OPSEC Framework</p>
+            <div class="metrics">
+                <div class="metric">🚀 10,000+ QPS Capability</div>
+                <div class="metric">🧵 50-Thread Architecture</div>
+                <div class="metric">🔒 Nation-State OPSEC</div>
+                <div class="metric">🐳 Docker Orchestration</div>
+            </div>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color dns-protocol" style="background: #00ff88;"></div>
+                <span>DNS Protocols</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color security" style="background: #ff4757;"></div>
+                <span>Security Layer</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color performance" style="background: #ffaa00;"></div>
+                <span>Performance</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color container-tech" style="background: #00d4ff;"></div>
+                <span>Container Tech</span>
+            </div>
+        </div>
+
+        <div class="architecture-diagram">
+            <!-- DNS Protocol Layer -->
+            <div class="layer" onclick="showModal('dnsProtocols')">
+                <div class="layer-title">
+                    <span class="icon">🌐</span>
+                    DNS Protocol Stack
+                    <div class="status-indicator"></div>
+                </div>
+                <div class="layer-content">
+                    <div class="component dns-protocol">DNS over UDP/TCP - Traditional</div>
+                    <div class="component dns-protocol">DNS over HTTPS (DoH) - Encrypted</div>
+                    <div class="component dns-protocol">DNS over TLS (DoT) - Secure</div>
+                    <div class="component dns-protocol">DNS over QUIC (DoQ) - Fast</div>
+                    <div class="component dns-protocol">IPv6 Support - Modern</div>
+                </div>
+            </div>
+
+            <!-- Processing Engine -->
+            <div class="layer" onclick="showModal('processingEngine')">
+                <div class="layer-title">
+                    <span class="icon">⚡</span>
+                    Processing Engine
+                    <div class="status-indicator"></div>
+                </div>
+                <div class="layer-content">
+                    <div class="component performance">50 Concurrent Threads</div>
+                    <div class="component performance">Async I/O Operations</div>
+                    <div class="component performance">Connection Pooling</div>
+                    <div class="component performance">Circuit Breaking</div>
+                    <div class="component performance">Load Balancing</div>
+                </div>
+            </div>
+
+            <!-- OPSEC Framework -->
+            <div class="layer" onclick="showModal('opsecFramework')">
+                <div class="layer-title">
+                    <span class="icon">🔒</span>
+                    OPSEC Framework
+                    <div class="status-indicator"></div>
+                </div>
+                <div class="layer-content">
+                    <div class="component security">Traffic Randomization</div>
+                    <div class="component security">User Agent Rotation</div>
+                    <div class="component security">Proxy Chain Support</div>
+                    <div class="component security">Rate Limiting</div>
+                    <div class="component security">Evidence Minimization</div>
+                </div>
+            </div>
+
+            <!-- Intelligence Pipeline -->
+            <div class="layer" onclick="showModal('intelligencePipeline')">
+                <div class="layer-title">
+                    <span class="icon">🧠</span>
+                    Intelligence Pipeline
+                    <div class="status-indicator"></div>
+                </div>
+                <div class="layer-content">
+                    <div class="component dns-protocol">Certificate Transparency</div>
+                    <div class="component dns-protocol">OSINT Correlation</div>
+                    <div class="component dns-protocol">Subdomain Enumeration</div>
+                    <div class="component dns-protocol">Zone Transfer Attempts</div>
+                    <div class="component dns-protocol">Result Aggregation</div>
+                </div>
+            </div>
+
+            <!-- Security Monitoring -->
+            <div class="layer" onclick="showModal('securityMonitoring')">
+                <div class="layer-title">
+                    <span class="icon">🛡️</span>
+                    Security Monitoring
+                    <div class="status-indicator"></div>
+                </div>
+                <div class="layer-content">
+                    <div class="component security">Anomaly Detection</div>
+                    <div class="component security">Threat Intelligence</div>
+                    <div class="component security">Adaptive Evasion</div>
+                    <div class="component security">Session Management</div>
+                    <div class="component security">Secure Memory</div>
+                </div>
+            </div>
+
+            <!-- Container Orchestration -->
+            <div class="layer" onclick="showModal('containerOrchestration')">
+                <div class="layer-title">
+                    <span class="icon">🐳</span>
+                    Container Layer
+                    <div class="status-indicator"></div>
+                </div>
+                <div class="layer-content">
+                    <div class="component container-tech">Docker Engine</div>
+                    <div class="component container-tech">Portainer Management</div>
+                    <div class="component container-tech">Health Monitoring</div>
+                    <div class="component container-tech">Resource Limits</div>
+                    <div class="component container-tech">Network Isolation</div>
+                </div>
+            </div>
+
+            <!-- Network Topology -->
+            <div class="layer network-topology">
+                <div class="layer-title">
+                    <span class="icon">🌍</span>
+                    Network Architecture & Service Topology
+                    <div class="status-indicator"></div>
+                </div>
+                <div class="network-nodes">
+                    <div class="network-node" onclick="showModal('mainService')">
+                        <div>Main Service</div>
+                        <small>512MB RAM</small>
+                        <small>172.20.0.0/16</small>
+                    </div>
+                    <div class="network-node" onclick="showModal('reconService')">
+                        <div>Recon Module</div>
+                        <small>1GB RAM</small>
+                        <small>Advanced Ops</small>
+                    </div>
+                    <div class="network-node" onclick="showModal('monitoringService')">
+                        <div>Monitoring</div>
+                        <small>Node Exporter</small>
+                        <small>172.21.0.0/16</small>
+                    </div>
+                    <div class="network-node" onclick="showModal('loggingService')">
+                        <div>Log Aggregation</div>
+                        <small>Fluent Bit</small>
+                        <small>Centralized</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="flow-arrows">
+            <div class="arrow" style="top: 25%; left: 30%; animation-delay: 0s;"></div>
+            <div class="arrow" style="top: 45%; left: 60%; animation-delay: 1s;"></div>
+            <div class="arrow" style="top: 65%; left: 20%; animation-delay: 2s;"></div>
+        </div>
+    </div>
+
+    <!-- Modals for detailed information -->
+    <div id="dnsProtocols" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>🌐 DNS Protocol Stack</h2>
+            <p><strong>Multi-Protocol Support for Enhanced Performance & Security</strong></p>
+            <ul>
+                <li><strong>DNS over UDP/TCP:</strong> Traditional DNS with fallback mechanisms</li>
+                <li><strong>DNS over HTTPS (DoH):</strong> Encrypted DNS via HTTPS on port 443</li>
+                <li><strong>DNS over TLS (DoT):</strong> Secure DNS over TLS on port 853</li>
+                <li><strong>DNS over QUIC (DoQ):</strong> Next-gen protocol with improved performance</li>
+                <li><strong>IPv6 Support:</strong> Full dual-stack capability for modern networks</li>
+            </ul>
+            <p><strong>Performance:</strong> Automatic protocol selection based on network conditions and OPSEC requirements.</p>
+        </div>
+    </div>
+
+    <div id="processingEngine" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>⚡ Processing Engine</h2>
+            <p><strong>High-Performance Async Architecture</strong></p>
+            <ul>
+                <li><strong>50 Concurrent Threads:</strong> Maximum parallel processing capability</li>
+                <li><strong>Async I/O:</strong> Non-blocking operations for optimal resource utilization</li>
+                <li><strong>Connection Pooling:</strong> Reusable connections to minimize overhead</li>
+                <li><strong>Circuit Breaking:</strong> Automatic failure detection and recovery</li>
+                <li><strong>Load Balancing:</strong> Intelligent work distribution across threads</li>
+            </ul>
+            <p><strong>Target Performance:</strong> 10,000+ queries per second with sub-100ms response times.</p>
+        </div>
+    </div>
+
+    <div id="opsecFramework" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>🔒 OPSEC Framework</h2>
+            <p><strong>Nation-State Level Operational Security</strong></p>
+            <ul>
+                <li><strong>Traffic Randomization:</strong> Variable timing and pattern obfuscation</li>
+                <li><strong>User Agent Rotation:</strong> Realistic browser simulation and rotation</li>
+                <li><strong>Proxy Chain Support:</strong> Multi-hop proxy chains with automatic failover</li>
+                <li><strong>Rate Limiting:</strong> Anti-detection request spacing (1-5s intervals)</li>
+                <li><strong>Evidence Minimization:</strong> Secure memory wiping and cleanup procedures</li>
+            </ul>
+            <p><strong>Detection Threshold:</strong> Critical detection score < 0.8 with automatic evasion.</p>
+        </div>
+    </div>
+
+    <div id="intelligencePipeline" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>🧠 Intelligence Pipeline</h2>
+            <p><strong>Advanced Reconnaissance & Data Correlation</strong></p>
+            <ul>
+                <li><strong>Certificate Transparency:</strong> Mining CT logs for subdomain discovery</li>
+                <li><strong>OSINT Correlation:</strong> Multiple intelligence source aggregation</li>
+                <li><strong>Subdomain Enumeration:</strong> Dictionary-based and intelligent guessing</li>
+                <li><strong>Zone Transfer Attempts:</strong> Authorized and unauthorized transfer testing</li>
+                <li><strong>Result Aggregation:</strong> Confidence scoring and duplicate elimination</li>
+            </ul>
+            <p><strong>Data Quality:</strong> Confidence levels from LOW to VERIFIED with source attribution.</p>
+        </div>
+    </div>
+
+    <div id="securityMonitoring" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>🛡️ Security Monitoring</h2>
+            <p><strong>Real-Time Threat Detection & Response</strong></p>
+            <ul>
+                <li><strong>Anomaly Detection:</strong> Pattern analysis for defensive countermeasures</li>
+                <li><strong>Threat Intelligence:</strong> Real-time threat feed integration</li>
+                <li><strong>Adaptive Evasion:</strong> Dynamic response to detection attempts</li>
+                <li><strong>Session Management:</strong> Secure session handling with timeouts</li>
+                <li><strong>Secure Memory:</strong> Protected memory regions with canary values</li>
+            </ul>
+            <p><strong>Response Time:</strong> Automatic evasion activation within 5 seconds of threat detection.</p>
+        </div>
+    </div>
+
+    <div id="containerOrchestration" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>🐳 Container Orchestration</h2>
+            <p><strong>Production-Ready Container Deployment</strong></p>
+            <ul>
+                <li><strong>Docker Engine:</strong> Containerized execution with isolation</li>
+                <li><strong>Portainer Management:</strong> Web-based container administration</li>
+                <li><strong>Health Monitoring:</strong> Automated health checks and recovery</li>
+                <li><strong>Resource Limits:</strong> Memory and CPU constraints for stability</li>
+                <li><strong>Network Isolation:</strong> Segmented networks for security</li>
+            </ul>
+            <p><strong>Deployment:</strong> Multi-service stack with automated scaling and failover.</p>
+        </div>
+    </div>
+
+    <div id="mainService" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>🏠 Main Service Container</h2>
+            <p><strong>Primary DNS Reconnaissance Engine</strong></p>
+            <ul>
+                <li><strong>Image:</strong> cloudunflare-enhanced:2.0</li>
+                <li><strong>Resources:</strong> 512MB RAM, 2 CPU cores</li>
+                <li><strong>Network:</strong> cloudunflare-network (172.20.0.0/16)</li>
+                <li><strong>Capabilities:</strong> NET_ADMIN, NET_RAW, SYS_PTRACE</li>
+                <li><strong>Features:</strong> DoQ/DoH/DoT, IPv6, OPSEC protections</li>
+            </ul>
+            <p><strong>Purpose:</strong> Core DNS reconnaissance with advanced protocol support.</p>
+        </div>
+    </div>
+
+    <div id="reconService" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>🔍 Reconnaissance Module</h2>
+            <p><strong>Advanced Intelligence Gathering</strong></p>
+            <ul>
+                <li><strong>Image:</strong> cloudunflare-enhanced:2.0-recon</li>
+                <li><strong>Resources:</strong> 1GB RAM, 4 CPU cores</li>
+                <li><strong>Features:</strong> Zone transfer, brute-force, port scanning</li>
+                <li><strong>Deployment:</strong> Optional recon profile</li>
+                <li><strong>Network:</strong> Isolated cloudunflare-network</li>
+            </ul>
+            <p><strong>Purpose:</strong> Extended reconnaissance capabilities with enhanced resource allocation.</p>
+        </div>
+    </div>
+
+    <div id="monitoringService" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>📊 Monitoring Service</h2>
+            <p><strong>System Metrics & Performance Tracking</strong></p>
+            <ul>
+                <li><strong>Image:</strong> prom/node-exporter:latest</li>
+                <li><strong>Port:</strong> 9100 (metrics endpoint)</li>
+                <li><strong>Network:</strong> monitoring-network (172.21.0.0/16)</li>
+                <li><strong>Profile:</strong> Optional monitoring deployment</li>
+                <li><strong>Features:</strong> Real-time system metrics collection</li>
+            </ul>
+            <p><strong>Purpose:</strong> Performance monitoring and resource utilization tracking.</p>
+        </div>
+    </div>
+
+    <div id="loggingService" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>📝 Log Aggregation Service</h2>
+            <p><strong>Centralized Log Processing</strong></p>
+            <ul>
+                <li><strong>Image:</strong> fluent/fluent-bit:latest</li>
+                <li><strong>Features:</strong> Log parsing, filtering, forwarding</li>
+                <li><strong>Network:</strong> monitoring-network</li>
+                <li><strong>Profile:</strong> Optional logging deployment</li>
+                <li><strong>Configuration:</strong> Custom parsers and filters</li>
+            </ul>
+            <p><strong>Purpose:</strong> Structured logging with security event correlation.</p>
+        </div>
+    </div>
+
+    <script>
+        // Modal functionality
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'block';
+        }
+
+        // Close modal when clicking the X
+        document.querySelectorAll('.close').forEach(closeBtn => {
+            closeBtn.onclick = function() {
+                this.closest('.modal').style.display = 'none';
+            }
+        });
+
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+
+        // Add dynamic data flow animation
+        function createFlowParticle() {
+            const particle = document.createElement('div');
+            particle.style.cssText = `
+                position: absolute;
+                width: 4px;
+                height: 4px;
+                background: #00d4ff;
+                border-radius: 50%;
+                pointer-events: none;
+                z-index: 10;
+                opacity: 0;
+                box-shadow: 0 0 10px #00d4ff;
+            `;
+
+            const startX = Math.random() * window.innerWidth;
+            const startY = Math.random() * window.innerHeight;
+            particle.style.left = startX + 'px';
+            particle.style.top = startY + 'px';
+
+            document.body.appendChild(particle);
+
+            // Animate particle
+            let opacity = 0;
+            let direction = Math.random() * Math.PI * 2;
+            let speed = 2;
+            let x = startX;
+            let y = startY;
+
+            const animate = () => {
+                opacity += 0.02;
+                if (opacity > 1) opacity = 1;
+                if (opacity > 0.8) opacity -= 0.03;
+
+                x += Math.cos(direction) * speed;
+                y += Math.sin(direction) * speed;
+
+                particle.style.opacity = opacity;
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+
+                if (opacity > 0 && x > -10 && x < window.innerWidth + 10 && y > -10 && y < window.innerHeight + 10) {
+                    requestAnimationFrame(animate);
+                } else {
+                    document.body.removeChild(particle);
+                }
+            };
+
+            requestAnimationFrame(animate);
+        }
+
+        // Create periodic flow particles
+        setInterval(createFlowParticle, 2000);
+
+        // Add hover effects for network topology
+        document.querySelectorAll('.network-node').forEach(node => {
+            node.addEventListener('mouseenter', function() {
+                this.style.filter = 'brightness(1.3)';
+                // Create connection lines to other nodes
+                document.querySelectorAll('.network-node').forEach(otherNode => {
+                    if (otherNode !== this) {
+                        otherNode.style.opacity = '0.6';
+                    }
+                });
+            });
+
+            node.addEventListener('mouseleave', function() {
+                this.style.filter = 'brightness(1)';
+                document.querySelectorAll('.network-node').forEach(otherNode => {
+                    otherNode.style.opacity = '1';
+                });
+            });
+        });
+
+        // Performance metrics animation
+        function updateMetrics() {
+            const metrics = [
+                { text: '🚀 ' + (9800 + Math.floor(Math.random() * 400)) + ' QPS Active', element: 0 },
+                { text: '🧵 ' + (45 + Math.floor(Math.random() * 5)) + ' Threads Running', element: 1 },
+                { text: '🔒 OPSEC Level: ' + ['STEALTH', 'ENHANCED', 'MAXIMUM'][Math.floor(Math.random() * 3)], element: 2 },
+                { text: '🐳 ' + (3 + Math.floor(Math.random() * 2)) + ' Containers Active', element: 3 }
+            ];
+
+            document.querySelectorAll('.metric').forEach((metric, index) => {
+                if (Math.random() > 0.7) { // 30% chance to update each metric
+                    metric.textContent = metrics[index].text;
+                }
+            });
+        }
+
+        // Update metrics every 3 seconds
+        setInterval(updateMetrics, 3000);
+
+        // Add keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal').forEach(modal => {
+                    modal.style.display = 'none';
+                });
+            }
+        });
+
+        console.log('🚀 CloudUnflare Enhanced v2.0 Architecture Diagram Loaded');
+        console.log('💡 Click on any component for detailed information');
+        console.log('⌨️  Press ESC to close modals');
+    </script>
+</body>
+</html>

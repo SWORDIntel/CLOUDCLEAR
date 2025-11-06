@@ -7,12 +7,15 @@ CFLAGS = -Wall -Wextra -O3 -std=c11 -D_GNU_SOURCE -pthread
 THREAD_SAFE_CFLAGS = $(CFLAGS) -DTHREAD_SAFE_BUILD
 RECON_CFLAGS = $(CFLAGS) -DRECON_MODULES_ENABLED
 LIBS = -lcurl -lssl -lcrypto -ljson-c -lpthread -latomic -lresolv
+TUI_LIBS = $(LIBS) -lncurses
 TARGET = cloudunflare
+TUI_TARGET = cloudunflare-tui
 THREAD_TEST_TARGET = thread_safety_test
 RECON_TARGET = cloudunflare-recon
 
 # Core sources
 CORE_SOURCES = cloudunflare.c dns_enhanced.c advanced_ip_detection.c
+TUI_SOURCES = cloudunflare_tui_main.c cloudclear_tui.c dns_enhanced.c advanced_ip_detection.c
 THREAD_TEST_SOURCES = thread_safety_test.c dns_enhanced.c
 
 # Reconnaissance module sources
@@ -30,6 +33,7 @@ SOURCES = $(CORE_SOURCES) $(RECON_SOURCES)
 
 # Headers
 CORE_HEADERS = dns_enhanced.h config.h advanced_ip_detection.h
+TUI_HEADERS = $(CORE_HEADERS) cloudclear_tui.h
 RECON_HEADERS = recon_modules/common/recon_common.h \
                 recon_modules/dns_zone_transfer/dns_zone_transfer.h \
                 recon_modules/dns_bruteforce/dns_bruteforce.h \
@@ -42,10 +46,40 @@ HEADERS = $(CORE_HEADERS) $(RECON_HEADERS)
 CURL_EXISTS := $(shell pkg-config --exists libcurl && echo yes)
 SSL_EXISTS := $(shell pkg-config --exists openssl && echo yes)
 JSON_EXISTS := $(shell pkg-config --exists json-c && echo yes)
+NCURSES_EXISTS := $(shell pkg-config --exists ncurses && echo yes)
 
-.PHONY: all clean install deps check thread-test thread-safe recon recon-core help-recon test-zone-transfer zone-transfer-example
+.PHONY: all clean install deps check thread-test thread-safe recon recon-core help-recon test-zone-transfer zone-transfer-example tui
 
 all: check $(TARGET)
+
+# TUI build target (with interactive interface)
+tui: check-tui tui-build
+
+check-tui: check
+	@echo "Checking TUI dependencies..."
+ifeq ($(NCURSES_EXISTS),yes)
+	@echo "✓ ncurses found"
+else
+	@echo "✗ ncurses not found - install with: sudo apt-get install libncurses-dev"
+	@exit 1
+endif
+	@echo "✓ All TUI dependencies satisfied"
+
+tui-build: $(TUI_SOURCES) $(TUI_HEADERS)
+	@echo "Compiling CloudClear with Interactive TUI..."
+	$(CC) $(CFLAGS) -o $(TUI_TARGET) $(TUI_SOURCES) $(TUI_LIBS)
+	@echo "========================================="
+	@echo "TUI Build completed successfully!"
+	@echo "========================================="
+	@echo "Features:"
+	@echo "  • Real-time progress display"
+	@echo "  • Interactive results browser"
+	@echo "  • Detailed candidate view with evidence"
+	@echo "  • Live statistics and phase tracking"
+	@echo "  • Beautiful ASCII art interface"
+	@echo ""
+	@echo "Run with: ./$(TUI_TARGET)"
+	@echo "========================================="
 
 # Reconnaissance modules build target
 recon: check recon-build
@@ -109,7 +143,7 @@ endif
 deps:
 	@echo "Installing dependencies..."
 	sudo apt-get update
-	sudo apt-get install -y libcurl4-openssl-dev libssl-dev libjson-c-dev build-essential pkg-config
+	sudo apt-get install -y libcurl4-openssl-dev libssl-dev libjson-c-dev libncurses-dev build-essential pkg-config
 
 install: $(TARGET)
 	@echo "Installing CloudUnflare Enhanced..."
@@ -132,7 +166,7 @@ zone-transfer-example: zone_transfer_example.c $(RECON_SOURCES) $(RECON_HEADERS)
 
 clean:
 	@echo "Cleaning build files..."
-	rm -f $(TARGET) $(RECON_TARGET) test_enhanced $(THREAD_TEST_TARGET)
+	rm -f $(TARGET) $(TUI_TARGET) $(RECON_TARGET) test_enhanced $(THREAD_TEST_TARGET)
 	rm -f test_zone_transfer zone_transfer_example
 	rm -f *.o recon_modules/*/*.o recon_modules/*/*/*.o
 	@echo "Clean completed"

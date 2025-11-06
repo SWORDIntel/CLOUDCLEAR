@@ -133,12 +133,23 @@ Designed for real-world penetration testing where detection matters:
 
 Beautiful ncurses-based interface for real-time operation monitoring:
 
+**Standard TUI:**
 - Live progress tracking
 - Interactive results browser
 - Detailed evidence viewer
 - Statistics dashboard
 - Phase tracking
 - Candidate scoring
+
+**Enhanced TUI (NEW!):**
+- ✨ Modern Unicode box-drawing characters
+- 🎨 Vibrant color scheme with gradient effects
+- 📊 Enhanced progress bars with visual feedback
+- 🏅 Medal ranking for top 3 candidates
+- ⚡ Animated status indicators
+- 💎 Polished professional design
+
+See [Enhanced TUI Guide](docs/TUI_ENHANCED.md) for details
 
 ## 📦 Quick Start (Docker Recommended)
 
@@ -192,6 +203,10 @@ make
 # Or build with TUI
 make tui
 ./cloudclear-tui
+
+# Or build with enhanced TUI (Unicode + modern UI)
+make tui-enhanced
+./cloudclear-tui-enhanced
 
 # Or build with reconnaissance modules
 make recon
@@ -309,6 +324,7 @@ CloudClear/
 - **[Quick Start Guide](docs/QUICKSTART.md)** - Get up and running in 5 minutes
 - **[Docker Deployment](docs/DOCKER.md)** - Complete Docker and Portainer guide
 - **[TUI Guide](docs/TUI_GUIDE.md)** - Interactive interface documentation
+- **[Enhanced TUI Guide](docs/TUI_ENHANCED.md)** - NEW! Modern UI with Unicode and polished design
 - **[Advanced IP Detection](docs/ADVANCED_IP_DETECTION.md)** - Origin discovery techniques
 - **[WAF Evasion Guide](docs/WAF_EVASION.md)** - NEW! Web Application Firewall bypass techniques
 - **[WAF Research Summary](docs/IMPROVEMENTS_FROM_WAF_RESEARCH.md)** - Implementation details and effectiveness analysis

@@ -9,6 +9,7 @@ LIBS = -lcurl -lssl -lcrypto -ljson-c -lpthread -latomic -lresolv
 TUI_LIBS = $(LIBS) -lncurses
 TARGET = cloudclear
 TUI_TARGET = cloudclear-tui
+TUI_ENHANCED_TARGET = cloudclear-tui-enhanced
 RECON_TARGET = cloudclear-recon
 
 # Source directories
@@ -29,6 +30,12 @@ TUI_SOURCES = $(TUI_DIR)/cloudunflare_tui_main.c \
               $(TUI_DIR)/cloudclear_tui.c \
               $(CORE_DIR)/dns_enhanced.c \
               $(MODULES_DIR)/advanced_ip_detection.c
+
+TUI_ENHANCED_SOURCES = $(TUI_DIR)/cloudunflare_tui_main.c \
+                       $(TUI_DIR)/cloudclear_tui.c \
+                       $(TUI_DIR)/cloudclear_tui_enhanced.c \
+                       $(CORE_DIR)/dns_enhanced.c \
+                       $(MODULES_DIR)/advanced_ip_detection.c
 
 # Reconnaissance module sources
 RECON_COMMON_DIR = $(MODULES_DIR)/recon/common
@@ -62,7 +69,7 @@ SSL_EXISTS := $(shell pkg-config --exists openssl && echo yes)
 JSON_EXISTS := $(shell pkg-config --exists json-c && echo yes)
 NCURSES_EXISTS := $(shell pkg-config --exists ncurses && echo yes)
 
-.PHONY: all clean install deps check tui recon test help structure docker
+.PHONY: all clean install deps check tui tui-enhanced recon test help structure docker
 
 all: check $(TARGET)
 
@@ -100,6 +107,30 @@ tui: check-tui
 	@echo "  • Beautiful ASCII art interface"
 	@echo ""
 	@echo "Run with: ./$(TUI_TARGET)"
+	@echo "========================================="
+
+# Enhanced TUI build target (with Unicode and modern UI)
+tui-enhanced: check-tui
+	@echo "========================================="
+	@echo "Building CloudClear with Enhanced TUI..."
+	@echo "========================================="
+	$(CC) $(CFLAGS) -o $(TUI_ENHANCED_TARGET) $(TUI_ENHANCED_SOURCES) $(TUI_LIBS)
+	@echo "✓ Enhanced TUI Build completed successfully!"
+	@echo ""
+	@echo "Enhanced Features:"
+	@echo "  ✨ Modern Unicode box-drawing characters"
+	@echo "  🎨 Vibrant color scheme with gradients"
+	@echo "  📊 Enhanced progress bars with visual feedback"
+	@echo "  🏅 Medal ranking for top candidates"
+	@echo "  ⚡ Animated status indicators"
+	@echo "  💎 Polished visual design"
+	@echo ""
+	@echo "Requirements:"
+	@echo "  • Terminal with UTF-8 support"
+	@echo "  • 256-color terminal (xterm-256color)"
+	@echo "  • Font with Unicode support (Nerd Font recommended)"
+	@echo ""
+	@echo "Run with: ./$(TUI_ENHANCED_TARGET)"
 	@echo "========================================="
 
 check-tui: check
@@ -171,7 +202,7 @@ test: $(TEST_DIR)/test_enhanced.c $(CORE_DIR)/dns_enhanced.c
 # Clean build artifacts
 clean:
 	@echo "Cleaning build files..."
-	rm -f $(TARGET) $(TUI_TARGET) $(RECON_TARGET)
+	rm -f $(TARGET) $(TUI_TARGET) $(TUI_ENHANCED_TARGET) $(RECON_TARGET)
 	rm -f $(BUILD_DIR)/*
 	rm -f $(SRC_DIR)/*/*.o $(SRC_DIR)/*/*/*.o $(SRC_DIR)/*/*/*/*.o
 	@echo "✓ Clean completed"
@@ -212,6 +243,7 @@ help:
 	@echo "Available targets:"
 	@echo "  make              - Build the application (default)"
 	@echo "  make tui          - Build with interactive TUI"
+	@echo "  make tui-enhanced - Build with enhanced TUI (Unicode + modern UI)"
 	@echo "  make recon        - Build with reconnaissance modules"
 	@echo "  make test         - Build and run test suite"
 	@echo "  make docker       - Build Docker image"

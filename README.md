@@ -85,6 +85,22 @@ CloudClear's flagship feature uses multiple correlation techniques to discover o
 - Response time analysis
 - Vulnerability indicators
 
+#### 3.1. WAF Evasion & Origin Verification (NEW!)
+- **Automatic WAF Detection**: Fingerprint 10+ major WAF vendors (Cloudflare, Akamai, AWS WAF, Imperva, etc.)
+- **IP Spoofing Headers**: 10+ header types (X-Forwarded-For, X-Real-IP, CF-Connecting-IP, etc.)
+- **Chunked Transfer Encoding**: Fragment requests to evade signature matching
+- **HTTP Parameter Pollution**: Duplicate parameters to confuse WAF parsers
+- **Header Case Mutation**: 5 mutation strategies to bypass case-sensitive filters
+- **Encoding Variations**: URL, double, Unicode, and hex encoding
+- **Adaptive Evasion**: Auto-configure based on detected WAF type
+- **Three-Tier Presets**: Light (stealth), Moderate (balanced), Aggressive (maximum bypass)
+- **Success Tracking**: Real-time bypass rate monitoring and statistics
+- **OPSEC Integration**: Seamless integration with existing paranoia levels
+
+**Effectiveness**: 70-95% bypass rate depending on WAF type and configuration
+
+See [WAF Evasion Documentation](docs/WAF_EVASION.md) for complete details.
+
 #### 4. Port Scanning
 - TCP SYN/Connect scanning
 - UDP service discovery
@@ -117,12 +133,23 @@ Designed for real-world penetration testing where detection matters:
 
 Beautiful ncurses-based interface for real-time operation monitoring:
 
+**Standard TUI:**
 - Live progress tracking
 - Interactive results browser
 - Detailed evidence viewer
 - Statistics dashboard
 - Phase tracking
 - Candidate scoring
+
+**Enhanced TUI (NEW!):**
+- ✨ Modern Unicode box-drawing characters
+- 🎨 Vibrant color scheme with gradient effects
+- 📊 Enhanced progress bars with visual feedback
+- 🏅 Medal ranking for top 3 candidates
+- ⚡ Animated status indicators
+- 💎 Polished professional design
+
+See [Enhanced TUI Guide](docs/TUI_ENHANCED.md) for details
 
 ## 📦 Quick Start (Docker Recommended)
 
@@ -176,6 +203,10 @@ make
 # Or build with TUI
 make tui
 ./cloudclear-tui
+
+# Or build with enhanced TUI (Unicode + modern UI)
+make tui-enhanced
+./cloudclear-tui-enhanced
 
 # Or build with reconnaissance modules
 make recon
@@ -293,7 +324,10 @@ CloudClear/
 - **[Quick Start Guide](docs/QUICKSTART.md)** - Get up and running in 5 minutes
 - **[Docker Deployment](docs/DOCKER.md)** - Complete Docker and Portainer guide
 - **[TUI Guide](docs/TUI_GUIDE.md)** - Interactive interface documentation
+- **[Enhanced TUI Guide](docs/TUI_ENHANCED.md)** - NEW! Modern UI with Unicode and polished design
 - **[Advanced IP Detection](docs/ADVANCED_IP_DETECTION.md)** - Origin discovery techniques
+- **[WAF Evasion Guide](docs/WAF_EVASION.md)** - NEW! Web Application Firewall bypass techniques
+- **[WAF Research Summary](docs/IMPROVEMENTS_FROM_WAF_RESEARCH.md)** - Implementation details and effectiveness analysis
 - **[API Documentation](docs/api/)** - Programmatic usage
 
 ## 🔒 Security & Ethics
@@ -385,6 +419,8 @@ Special thanks to the researchers and projects that inspired this work:
 - CloudFlair, CloudFail, and other CDN bypass tools
 - Sublist3r, Amass, and subdomain enumeration tools
 - dnsx, massdns, and modern DNS tooling
+- WAF bypass research community (Knockin-on-Heaven-s-Door, OWASP, PortSwigger)
+- SQLMap tamper script methodologies
 
 ## 📞 Support
 

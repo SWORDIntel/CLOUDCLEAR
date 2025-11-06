@@ -32,6 +32,7 @@
 #include <openssl/rand.h>
 #include <json-c/json.h>
 #include "dns_enhanced.h"
+#include "advanced_ip_detection.h"
 
 #ifdef RECON_MODULES_ENABLED
 #include "recon_modules/common/recon_common.h"
@@ -957,6 +958,21 @@ int main(int argc, char *argv[]) {
     printf("\n=== Phase 5: Advanced Reconnaissance Modules ===\n");
     perform_advanced_reconnaissance(&session, domain);
 #endif
+
+    // Phase 6: Advanced IP Detection (NEW - Enhanced CDN Bypass)
+    printf("\n=== Phase 6: Advanced IP Detection & CDN Bypass ===\n");
+    printf("[INFO] Deploying advanced techniques to find origin IP behind CDN\n");
+
+    struct advanced_ip_detection_result advanced_result;
+    if (perform_advanced_ip_detection(domain, &advanced_result) > 0) {
+        printf("\n[SUCCESS] Advanced IP detection completed!\n");
+        print_advanced_detection_results(&advanced_result);
+
+        // Cleanup advanced result
+        cleanup_advanced_ip_detection_result(&advanced_result);
+    } else {
+        printf("\n[INFO] Advanced IP detection completed with limited results\n");
+    }
 
     // Check for operational security issues
     adaptive_evasion_response(&session);

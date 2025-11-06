@@ -1,46 +1,60 @@
-# Makefile for CloudUnflare Enhanced
+# Makefile for CloudClear (CloudUnflare Enhanced)
 # Advanced DNS reconnaissance tool with OPSEC capabilities and thread safety
-# Phase 1: API-free reconnaissance modules (DNS Zone Transfer, Brute-Force, HTTP Banner, Port Scanner)
 
 CC = gcc
-CFLAGS = -Wall -Wextra -O3 -std=c11 -D_GNU_SOURCE -pthread
+CFLAGS = -Wall -Wextra -O3 -std=c11 -D_GNU_SOURCE -pthread -Iinclude
 THREAD_SAFE_CFLAGS = $(CFLAGS) -DTHREAD_SAFE_BUILD
 RECON_CFLAGS = $(CFLAGS) -DRECON_MODULES_ENABLED
 LIBS = -lcurl -lssl -lcrypto -ljson-c -lpthread -latomic -lresolv
 TUI_LIBS = $(LIBS) -lncurses
-TARGET = cloudunflare
-TUI_TARGET = cloudunflare-tui
-THREAD_TEST_TARGET = thread_safety_test
-RECON_TARGET = cloudunflare-recon
+TARGET = cloudclear
+TUI_TARGET = cloudclear-tui
+RECON_TARGET = cloudclear-recon
+
+# Source directories
+SRC_DIR = src
+CORE_DIR = $(SRC_DIR)/core
+TUI_DIR = $(SRC_DIR)/tui
+MODULES_DIR = $(SRC_DIR)/modules
+INCLUDE_DIR = include
+TEST_DIR = tests
+BUILD_DIR = build
 
 # Core sources
-CORE_SOURCES = cloudunflare.c dns_enhanced.c advanced_ip_detection.c
-TUI_SOURCES = cloudunflare_tui_main.c cloudclear_tui.c dns_enhanced.c advanced_ip_detection.c
-THREAD_TEST_SOURCES = thread_safety_test.c dns_enhanced.c
+CORE_SOURCES = $(CORE_DIR)/cloudunflare.c \
+               $(CORE_DIR)/dns_enhanced.c \
+               $(MODULES_DIR)/advanced_ip_detection.c
+
+TUI_SOURCES = $(TUI_DIR)/cloudunflare_tui_main.c \
+              $(TUI_DIR)/cloudclear_tui.c \
+              $(CORE_DIR)/dns_enhanced.c \
+              $(MODULES_DIR)/advanced_ip_detection.c
 
 # Reconnaissance module sources
-RECON_COMMON_SOURCES = recon_modules/common/recon_common.c
-RECON_DNS_ZONE_SOURCES = recon_modules/dns_zone_transfer/dns_zone_transfer.c
-RECON_DNS_BRUTE_SOURCES = recon_modules/dns_bruteforce/dns_bruteforce.c
-RECON_HTTP_BANNER_SOURCES = recon_modules/http_banner/http_banner.c
-RECON_PORT_SCANNER_SOURCES = recon_modules/port_scanner/port_scanner.c
+RECON_COMMON_DIR = $(MODULES_DIR)/recon/common
+RECON_COMMON_SOURCES = $(RECON_COMMON_DIR)/recon_common.c \
+                       $(RECON_COMMON_DIR)/recon_opsec.c \
+                       $(RECON_COMMON_DIR)/recon_proxy.c
+
+RECON_DNS_ZONE_SOURCES = $(MODULES_DIR)/recon/dns_zone_transfer/dns_zone_transfer.c \
+                         $(MODULES_DIR)/recon/dns_zone_transfer/dns_zone_transfer_enhanced.c
+RECON_DNS_BRUTE_SOURCES = $(MODULES_DIR)/recon/dns_bruteforce/dns_bruteforce.c
+RECON_HTTP_BANNER_SOURCES = $(MODULES_DIR)/recon/http_banner/http_banner.c
+RECON_PORT_SCANNER_SOURCES = $(MODULES_DIR)/recon/port_scanner/port_scanner.c
 
 # All reconnaissance sources
-RECON_SOURCES = $(RECON_COMMON_SOURCES) $(RECON_DNS_ZONE_SOURCES) $(RECON_DNS_BRUTE_SOURCES) $(RECON_HTTP_BANNER_SOURCES) $(RECON_PORT_SCANNER_SOURCES)
+RECON_SOURCES = $(RECON_COMMON_SOURCES) $(RECON_DNS_ZONE_SOURCES) \
+                $(RECON_DNS_BRUTE_SOURCES) $(RECON_HTTP_BANNER_SOURCES) \
+                $(RECON_PORT_SCANNER_SOURCES)
 
 # Combined sources for full build
 SOURCES = $(CORE_SOURCES) $(RECON_SOURCES)
 
 # Headers
-CORE_HEADERS = dns_enhanced.h config.h advanced_ip_detection.h
-TUI_HEADERS = $(CORE_HEADERS) cloudclear_tui.h
-RECON_HEADERS = recon_modules/common/recon_common.h \
-                recon_modules/dns_zone_transfer/dns_zone_transfer.h \
-                recon_modules/dns_bruteforce/dns_bruteforce.h \
-                recon_modules/http_banner/http_banner.h \
-                recon_modules/port_scanner/port_scanner.h
-
-HEADERS = $(CORE_HEADERS) $(RECON_HEADERS)
+CORE_HEADERS = $(INCLUDE_DIR)/dns_enhanced.h \
+               $(INCLUDE_DIR)/config.h \
+               $(INCLUDE_DIR)/advanced_ip_detection.h
+TUI_HEADERS = $(CORE_HEADERS) $(INCLUDE_DIR)/cloudclear_tui.h
 
 # Check for required libraries
 CURL_EXISTS := $(shell pkg-config --exists libcurl && echo yes)
@@ -48,12 +62,45 @@ SSL_EXISTS := $(shell pkg-config --exists openssl && echo yes)
 JSON_EXISTS := $(shell pkg-config --exists json-c && echo yes)
 NCURSES_EXISTS := $(shell pkg-config --exists ncurses && echo yes)
 
-.PHONY: all clean install deps check thread-test thread-safe recon recon-core help-recon test-zone-transfer zone-transfer-example tui
+.PHONY: all clean install deps check tui recon test help structure docker
 
 all: check $(TARGET)
 
+# Main build target
+$(TARGET): $(SOURCES)
+	@echo "========================================="
+	@echo "Building CloudClear..."
+	@echo "========================================="
+	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCES) $(LIBS)
+	@echo "✓ Build completed successfully!"
+	@echo ""
+	@echo "Enhanced features:"
+	@echo "  • DoQ/DoH/DoT protocol support"
+	@echo "  • Advanced IP detection (SSL cert matching, MX analysis, SRV discovery)"
+	@echo "  • Cloudflare bypass detection"
+	@echo "  • ASN clustering and PTR analysis"
+	@echo "  • IP enrichment, CDN detection, dual-stack IPv6"
+	@echo ""
+	@echo "Run with: ./$(TARGET)"
+	@echo "========================================="
+
 # TUI build target (with interactive interface)
-tui: check-tui tui-build
+tui: check-tui
+	@echo "========================================="
+	@echo "Building CloudClear with Interactive TUI..."
+	@echo "========================================="
+	$(CC) $(CFLAGS) -o $(TUI_TARGET) $(TUI_SOURCES) $(TUI_LIBS)
+	@echo "✓ TUI Build completed successfully!"
+	@echo ""
+	@echo "Features:"
+	@echo "  • Real-time progress display"
+	@echo "  • Interactive results browser"
+	@echo "  • Detailed candidate view with evidence"
+	@echo "  • Live statistics and phase tracking"
+	@echo "  • Beautiful ASCII art interface"
+	@echo ""
+	@echo "Run with: ./$(TUI_TARGET)"
+	@echo "========================================="
 
 check-tui: check
 	@echo "Checking TUI dependencies..."
@@ -65,59 +112,20 @@ else
 endif
 	@echo "✓ All TUI dependencies satisfied"
 
-tui-build: $(TUI_SOURCES) $(TUI_HEADERS)
-	@echo "Compiling CloudClear with Interactive TUI..."
-	$(CC) $(CFLAGS) -o $(TUI_TARGET) $(TUI_SOURCES) $(TUI_LIBS)
-	@echo "========================================="
-	@echo "TUI Build completed successfully!"
-	@echo "========================================="
-	@echo "Features:"
-	@echo "  • Real-time progress display"
-	@echo "  • Interactive results browser"
-	@echo "  • Detailed candidate view with evidence"
-	@echo "  • Live statistics and phase tracking"
-	@echo "  • Beautiful ASCII art interface"
-	@echo ""
-	@echo "Run with: ./$(TUI_TARGET)"
-	@echo "========================================="
-
 # Reconnaissance modules build target
-recon: check recon-build
-
-recon-build: $(SOURCES) $(HEADERS)
-	@echo "Compiling CloudUnflare Enhanced with reconnaissance modules..."
+recon: check
+	@echo "========================================="
+	@echo "Building CloudClear with Reconnaissance Modules..."
+	@echo "========================================="
 	$(CC) $(RECON_CFLAGS) -o $(RECON_TARGET) $(SOURCES) $(LIBS)
-	@echo "Reconnaissance build completed successfully!"
+	@echo "✓ Reconnaissance build completed successfully!"
+	@echo ""
 	@echo "Features: DNS Zone Transfer, Brute-Force, HTTP Banner Grabbing, Port Scanning"
+	@echo ""
 	@echo "Run with: ./$(RECON_TARGET)"
+	@echo "========================================="
 
-# Core reconnaissance modules only (for development)
-recon-core: $(RECON_SOURCES) $(RECON_HEADERS)
-	@echo "Building reconnaissance modules library..."
-	$(CC) $(RECON_CFLAGS) -c $(RECON_SOURCES)
-	@echo "Reconnaissance modules compiled successfully!"
-
-# Thread-safe build target
-thread-safe: check thread-safe-build
-
-thread-safe-build: $(SOURCES) $(HEADERS)
-	@echo "Compiling CloudUnflare Enhanced with thread safety improvements..."
-	$(CC) $(THREAD_SAFE_CFLAGS) -o $(TARGET) $(SOURCES) $(LIBS)
-	@echo "Thread-safe build completed successfully!"
-	@echo "Features: 50-thread concurrency, atomic operations, mutex protection"
-
-$(TARGET): $(SOURCES) $(HEADERS)
-	@echo "Compiling CloudUnflare Enhanced with Advanced IP Detection..."
-	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCES) $(LIBS)
-	@echo "Build completed successfully!"
-	@echo "Enhanced features:"
-	@echo "  • DoQ/DoH/DoT protocol support"
-	@echo "  • Advanced IP detection (SSL cert matching, MX analysis, SRV discovery)"
-	@echo "  • Cloudflare bypass detection"
-	@echo "  • ASN clustering and PTR analysis"
-	@echo "  • IP enrichment, CDN detection, dual-stack IPv6"
-	@echo "Run with: ./$(TARGET)"
-
+# Dependency checking
 check:
 	@echo "Checking dependencies..."
 ifeq ($(CURL_EXISTS),yes)
@@ -140,130 +148,87 @@ else
 endif
 	@echo "✓ All dependencies satisfied"
 
+# Install dependencies
 deps:
 	@echo "Installing dependencies..."
 	sudo apt-get update
 	sudo apt-get install -y libcurl4-openssl-dev libssl-dev libjson-c-dev libncurses-dev build-essential pkg-config
 
+# System installation
 install: $(TARGET)
-	@echo "Installing CloudUnflare Enhanced..."
+	@echo "Installing CloudClear..."
 	sudo cp $(TARGET) /usr/local/bin/
 	sudo chmod +x /usr/local/bin/$(TARGET)
-	@echo "Installation completed. Run with: cloudunflare"
+	@echo "✓ Installation completed. Run with: cloudclear"
 
-# DNS Zone Transfer test and example programs
-test-zone-transfer: test_zone_transfer.c $(RECON_SOURCES) $(RECON_HEADERS)
-	@echo "Building DNS Zone Transfer test suite..."
-	$(CC) $(RECON_CFLAGS) -o test_zone_transfer test_zone_transfer.c $(RECON_SOURCES) $(LIBS)
-	@echo "✓ Zone transfer test build completed"
-	@echo "Run with: ./test_zone_transfer"
+# Build tests
+test: $(TEST_DIR)/test_enhanced.c $(CORE_DIR)/dns_enhanced.c
+	@echo "Building test suite..."
+	$(CC) $(CFLAGS) -o $(BUILD_DIR)/test_enhanced $(TEST_DIR)/test_enhanced.c $(CORE_DIR)/dns_enhanced.c $(LIBS)
+	@echo "Running tests..."
+	./$(BUILD_DIR)/test_enhanced
 
-zone-transfer-example: zone_transfer_example.c $(RECON_SOURCES) $(RECON_HEADERS)
-	@echo "Building DNS Zone Transfer example program..."
-	$(CC) $(RECON_CFLAGS) -o zone_transfer_example zone_transfer_example.c $(RECON_SOURCES) $(LIBS)
-	@echo "✓ Zone transfer example build completed"
-	@echo "Run with: ./zone_transfer_example --help"
-
+# Clean build artifacts
 clean:
 	@echo "Cleaning build files..."
-	rm -f $(TARGET) $(TUI_TARGET) $(RECON_TARGET) test_enhanced $(THREAD_TEST_TARGET)
-	rm -f test_zone_transfer zone_transfer_example
-	rm -f *.o recon_modules/*/*.o recon_modules/*/*/*.o
-	@echo "Clean completed"
+	rm -f $(TARGET) $(TUI_TARGET) $(RECON_TARGET)
+	rm -f $(BUILD_DIR)/*
+	rm -f $(SRC_DIR)/*/*.o $(SRC_DIR)/*/*/*.o $(SRC_DIR)/*/*/*/*.o
+	@echo "✓ Clean completed"
 
-# Debug build
-debug: CFLAGS += -g -DDEBUG
-debug: $(TARGET)
+# Docker build
+docker:
+	@echo "Building Docker image..."
+	cd docker && docker build -t cloudclear:latest -f Dockerfile ..
+	@echo "✓ Docker image built successfully"
 
-# Static analysis
-analyze:
-	@echo "Running static analysis..."
-	cppcheck --enable=all --std=c99 $(SOURCE)
+# Show project structure
+structure:
+	@echo "CloudClear Project Structure:"
+	@echo ""
+	@echo "CLOUDCLEAR/"
+	@echo "├── src/                  # Source code"
+	@echo "│   ├── core/            # Core application"
+	@echo "│   ├── tui/             # Text User Interface"
+	@echo "│   └── modules/         # Feature modules"
+	@echo "│       ├── performance/ # Performance optimizations"
+	@echo "│       └── recon/       # Reconnaissance modules"
+	@echo "├── include/             # Header files"
+	@echo "├── tests/               # Test suite"
+	@echo "├── scripts/             # Utility scripts"
+	@echo "├── docker/              # Docker configuration"
+	@echo "├── docs/                # Documentation"
+	@echo "├── data/                # Runtime data"
+	@echo "│   ├── config/         # Configuration files"
+	@echo "│   └── wordlists/      # Enumeration wordlists"
+	@echo "└── build/               # Build artifacts"
 
-# Security hardening flags
-secure: CFLAGS += -fstack-protector-strong -D_FORTIFY_SOURCE=2 -fPIE
-secure: LIBS += -pie
-secure: $(TARGET)
-	@echo "Security-hardened build completed"
-
-# Test suite
-test: test_enhanced
-	@echo "Running enhanced DNS resolution test suite..."
-	./test_enhanced
-
-test_enhanced: test_enhanced.c $(SOURCES) $(HEADERS)
-	@echo "Building enhanced DNS test suite..."
-	$(CC) $(CFLAGS) -o test_enhanced test_enhanced.c dns_enhanced.c $(LIBS)
-
-# Thread safety test
-thread-test: $(THREAD_TEST_TARGET)
-	@echo "Running thread safety verification test..."
-	@echo "This test validates 50-thread concurrency safety..."
-	./$(THREAD_TEST_TARGET)
-
-$(THREAD_TEST_TARGET): $(THREAD_TEST_SOURCES) $(HEADERS)
-	@echo "Building thread safety test suite..."
-	$(CC) $(THREAD_SAFE_CFLAGS) -o $(THREAD_TEST_TARGET) $(THREAD_TEST_SOURCES) $(LIBS)
-
+# Help
 help:
-	@echo "CloudUnflare Enhanced Build System"
+	@echo "========================================="
+	@echo "CloudClear Build System"
+	@echo "========================================="
 	@echo ""
 	@echo "Available targets:"
-	@echo "  all         - Build the application (default)"
-	@echo "  recon       - Build with reconnaissance modules (Phase 1)"
-	@echo "  recon-core  - Build reconnaissance modules only"
-	@echo "  thread-safe - Build with thread safety features"
-	@echo "  test        - Build and run DNS test suite"
-	@echo "  thread-test - Build and run thread safety tests"
-	@echo "  test-zone-transfer - Build DNS Zone Transfer test suite"
-	@echo "  zone-transfer-example - Build Zone Transfer example program"
-	@echo "  deps        - Install required dependencies"
-	@echo "  check       - Check for required dependencies"
-	@echo "  debug       - Build with debug symbols"
-	@echo "  secure      - Build with security hardening"
-	@echo "  analyze     - Run static code analysis"
-	@echo "  install     - Install to /usr/local/bin"
-	@echo "  clean       - Remove build files"
-	@echo "  help        - Show this help message"
-	@echo "  help-recon  - Show reconnaissance modules help"
+	@echo "  make              - Build the application (default)"
+	@echo "  make tui          - Build with interactive TUI"
+	@echo "  make recon        - Build with reconnaissance modules"
+	@echo "  make test         - Build and run test suite"
+	@echo "  make docker       - Build Docker image"
+	@echo "  make deps         - Install required dependencies"
+	@echo "  make check        - Check for required dependencies"
+	@echo "  make install      - Install to /usr/local/bin"
+	@echo "  make clean        - Remove build files"
+	@echo "  make structure    - Show project structure"
+	@echo "  make help         - Show this help message"
 	@echo ""
-	@echo "Enhanced DNS Features:"
-	@echo "  • DoQ/DoH/DoT protocol support with intelligent fallback"
-	@echo "  • Dual-stack IPv4/IPv6 resolution"
-	@echo "  • IP enrichment with geolocation and ASN data"
-	@echo "  • CDN detection and origin discovery"
-	@echo "  • Rate limiting and OPSEC protections"
+	@echo "Quick start:"
+	@echo "  1. make deps      # Install dependencies"
+	@echo "  2. make           # Build application"
+	@echo "  3. ./cloudclear   # Run CloudClear"
 	@echo ""
-	@echo "Usage examples:"
-	@echo "  make deps    # Install dependencies"
-	@echo "  make         # Build application"
-	@echo "  make recon   # Build with reconnaissance modules"
-	@echo "  make test    # Run test suite"
-	@echo "  make secure  # Build with security features"
-	@echo "  make install # Install system-wide"
-
-help-recon:
-	@echo "CloudUnflare Enhanced - Reconnaissance Modules (Phase 1)"
+	@echo "Docker deployment (recommended):"
+	@echo "  cd docker && docker-compose up -d"
 	@echo ""
-	@echo "Available reconnaissance modules:"
-	@echo "  • DNS Zone Transfer    - AXFR/IXFR enumeration"
-	@echo "  • DNS Brute-Force     - Enhanced subdomain enumeration"
-	@echo "  • HTTP Banner Grabbing - SSL analysis and fingerprinting"
-	@echo "  • Port Scanner        - TCP SYN/UDP/Connect scanning"
-	@echo ""
-	@echo "Build targets:"
-	@echo "  make recon      - Build CloudUnflare with reconnaissance modules"
-	@echo "  make recon-core - Build reconnaissance modules only (development)"
-	@echo ""
-	@echo "Agent coordination for Phase 1 implementation:"
-	@echo "  C-INTERNAL  - Core module implementation"
-	@echo "  ARCHITECT   - Integration design and structure"
-	@echo "  SECURITY    - OPSEC compliance and stealth features"
-	@echo "  OPTIMIZER   - Performance tuning and efficiency"
-	@echo ""
-	@echo "Features:"
-	@echo "  • OPSEC-compliant timing and evasion"
-	@echo "  • Multi-threaded operations with rate limiting"
-	@echo "  • Comprehensive error handling and logging"
-	@echo "  • Modular design for easy extension"
-	@echo "  • Integration with existing DNS enhanced capabilities"
+	@echo "See docs/QUICKSTART.md for more information"
+	@echo "========================================="

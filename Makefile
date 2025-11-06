@@ -12,7 +12,7 @@ THREAD_TEST_TARGET = thread_safety_test
 RECON_TARGET = cloudunflare-recon
 
 # Core sources
-CORE_SOURCES = cloudunflare.c dns_enhanced.c
+CORE_SOURCES = cloudunflare.c dns_enhanced.c advanced_ip_detection.c
 THREAD_TEST_SOURCES = thread_safety_test.c dns_enhanced.c
 
 # Reconnaissance module sources
@@ -29,7 +29,7 @@ RECON_SOURCES = $(RECON_COMMON_SOURCES) $(RECON_DNS_ZONE_SOURCES) $(RECON_DNS_BR
 SOURCES = $(CORE_SOURCES) $(RECON_SOURCES)
 
 # Headers
-CORE_HEADERS = dns_enhanced.h config.h
+CORE_HEADERS = dns_enhanced.h config.h advanced_ip_detection.h
 RECON_HEADERS = recon_modules/common/recon_common.h \
                 recon_modules/dns_zone_transfer/dns_zone_transfer.h \
                 recon_modules/dns_bruteforce/dns_bruteforce.h \
@@ -73,10 +73,15 @@ thread-safe-build: $(SOURCES) $(HEADERS)
 	@echo "Features: 50-thread concurrency, atomic operations, mutex protection"
 
 $(TARGET): $(SOURCES) $(HEADERS)
-	@echo "Compiling CloudUnflare Enhanced with DNS improvements..."
+	@echo "Compiling CloudUnflare Enhanced with Advanced IP Detection..."
 	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCES) $(LIBS)
 	@echo "Build completed successfully!"
-	@echo "Enhanced features: DoQ/DoH/DoT, IP enrichment, CDN detection, dual-stack IPv6"
+	@echo "Enhanced features:"
+	@echo "  • DoQ/DoH/DoT protocol support"
+	@echo "  • Advanced IP detection (SSL cert matching, MX analysis, SRV discovery)"
+	@echo "  • Cloudflare bypass detection"
+	@echo "  • ASN clustering and PTR analysis"
+	@echo "  • IP enrichment, CDN detection, dual-stack IPv6"
 	@echo "Run with: ./$(TARGET)"
 
 check:

@@ -431,7 +431,7 @@ Special thanks to the researchers and projects that inspired this work:
 
 <div align="center">
 
-**CloudClear** - *Illuminate the hidden infrastructure*
+**CloudClear** - *Bring the light of day upon thee*
 
 Made with ⚔️ by SWORD Intelligence
 

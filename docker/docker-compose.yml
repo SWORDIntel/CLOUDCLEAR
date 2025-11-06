@@ -1,0 +1,294 @@
+# CloudClear v2.0 - Docker Compose Configuration
+# High-performance DNS reconnaissance with comprehensive container orchestration
+# Optimized for production deployment with security and monitoring
+
+version: '3.8'
+
+services:
+  # Main CloudClear application
+  cloudclear-main:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: production
+      args:
+        BUILD_VERSION: "2.0-Enhanced"
+        BUILD_DATE: "${BUILD_DATE:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}"
+        BUILD_VARIANT: "standard"
+    image: cloudclear:2.0
+    container_name: cloudclear-main
+    hostname: cloudclear-main
+    restart: unless-stopped
+
+    # Network configuration for advanced DNS operations
+    networks:
+      - cloudclear-network
+      - monitoring-network
+
+    # DNS configuration for optimal performance
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+      - 2606:4700:4700::1111
+      - 2001:4860:4860::8888
+
+    # Capabilities for OPSEC operations (requires NET_ADMIN for advanced networking)
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_PTRACE
+
+    # Security configuration
+    security_opt:
+      - no-new-privileges:true
+
+    # Resource limits for performance optimization
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '2.0'
+        reservations:
+          memory: 256M
+          cpus: '1.0'
+
+    # Volume mounts for persistent data
+    volumes:
+      - cloudclear-config:/app/config
+      - cloudclear-results:/app/results
+      - cloudclear-logs:/app/logs
+      - cloudclear-wordlists:/app/wordlists
+      - /etc/resolv.conf:/etc/resolv.conf:ro
+
+    # Environment configuration
+    environment:
+      - CLOUDCLEAR_MAX_THREADS=50
+      - CLOUDCLEAR_DNS_TIMEOUT=30
+      - CLOUDCLEAR_OPSEC_MODE=1
+      - CLOUDCLEAR_LOG_LEVEL=1
+      - CLOUDCLEAR_PERFORMANCE_MODE=1
+      - TZ=UTC
+
+    # Health monitoring
+    healthcheck:
+      test: ["/app/healthcheck.sh"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Labels for Portainer management
+    labels:
+      - "traefik.enable=false"
+      - "cloudclear.service=main"
+      - "cloudclear.version=2.0-enhanced"
+      - "portainer.stack.name=cloudclear"
+
+  # Reconnaissance variant for specialized operations
+  cloudclear-recon:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: production
+      args:
+        BUILD_VERSION: "2.0-Enhanced-Recon"
+        BUILD_DATE: "${BUILD_DATE:-$(date -u +'%Y-%m-%dT%H:%M:%SZ')}"
+        BUILD_VARIANT: "reconnaissance"
+    image: cloudclear:2.0-recon
+    container_name: cloudclear-recon
+    hostname: cloudclear-recon
+    restart: unless-stopped
+    profiles:
+      - recon
+
+    networks:
+      - cloudclear-network
+      - monitoring-network
+
+    # Enhanced capabilities for reconnaissance modules
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - SYS_PTRACE
+
+    security_opt:
+      - no-new-privileges:true
+
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '4.0'
+        reservations:
+          memory: 512M
+          cpus: '2.0'
+
+    volumes:
+      - cloudclear-config:/app/config
+      - cloudclear-recon-results:/app/results
+      - cloudclear-logs:/app/logs
+      - cloudclear-wordlists:/app/wordlists
+      - cloudclear-probes:/app/probes
+
+    environment:
+      - CLOUDCLEAR_MAX_THREADS=100
+      - CLOUDCLEAR_DNS_TIMEOUT=60
+      - CLOUDCLEAR_OPSEC_MODE=1
+      - CLOUDCLEAR_LOG_LEVEL=2
+      - CLOUDCLEAR_RECON_MODE=1
+      - RECON_MODULES_ENABLED=1
+      - TZ=UTC
+
+    command: ["/app/cloudclear-recon"]
+
+    healthcheck:
+      test: ["/app/healthcheck.sh"]
+      interval: 45s
+      timeout: 15s
+      retries: 3
+      start_period: 15s
+
+    labels:
+      - "cloudclear.service=reconnaissance"
+      - "cloudclear.version=2.0-enhanced-recon"
+      - "portainer.stack.name=cloudclear"
+
+  # TUI variant with interactive interface
+  cloudclear-tui:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: production
+    image: cloudclear:2.0-tui
+    container_name: cloudclear-tui
+    hostname: cloudclear-tui
+    restart: "no"
+    profiles:
+      - interactive
+
+    networks:
+      - cloudclear-network
+
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+    security_opt:
+      - no-new-privileges:true
+
+    volumes:
+      - cloudclear-config:/app/config
+      - cloudclear-results:/app/results
+      - cloudclear-logs:/app/logs
+      - cloudclear-wordlists:/app/wordlists
+
+    environment:
+      - CLOUDCLEAR_MAX_THREADS=50
+      - CLOUDCLEAR_DNS_TIMEOUT=30
+      - CLOUDCLEAR_OPSEC_MODE=1
+      - TZ=UTC
+      - TERM=xterm-256color
+
+    command: ["/app/cloudclear-tui"]
+    stdin_open: true
+    tty: true
+
+    labels:
+      - "cloudclear.service=tui"
+      - "cloudclear.version=2.0-tui"
+
+  # Monitoring and metrics collection
+  cloudclear-monitor:
+    image: prom/node-exporter:latest
+    container_name: cloudclear-monitor
+    hostname: cloudclear-monitor
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+    networks:
+      - monitoring-network
+
+    ports:
+      - "9100:9100"
+
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+
+    labels:
+      - "cloudclear.service=monitoring"
+      - "portainer.stack.name=cloudclear"
+
+  # Log aggregation and analysis
+  cloudclear-logs:
+    image: fluent/fluent-bit:latest
+    container_name: cloudclear-logs
+    hostname: cloudclear-logs
+    restart: unless-stopped
+    profiles:
+      - logging
+
+    networks:
+      - monitoring-network
+
+    volumes:
+      - cloudclear-logs:/fluent-bit/log
+      - ../docker/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+
+    depends_on:
+      - cloudclear-main
+
+    labels:
+      - "cloudclear.service=logging"
+      - "portainer.stack.name=cloudclear"
+
+# Network configuration for isolation and security
+networks:
+  cloudclear-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
+    driver_opts:
+      com.docker.network.bridge.name: cloudclear-br
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
+      com.docker.network.driver.mtu: 1500
+
+  monitoring-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+          gateway: 172.21.0.1
+
+# Persistent volume configuration
+volumes:
+  cloudclear-config:
+    driver: local
+  cloudclear-results:
+    driver: local
+  cloudclear-recon-results:
+    driver: local
+  cloudclear-logs:
+    driver: local
+  cloudclear-wordlists:
+    driver: local
+  cloudclear-probes:
+    driver: local

@@ -1,0 +1,70 @@
+# Compiled binaries
+cloudclear
+cloudclear-tui
+cloudclear-recon
+*.o
+*.so
+*.a
+
+# Build artifacts
+build/
+*.d
+*.elf
+
+# Test binaries
+tests/*_bin
+tests/test_*
+!tests/*.c
+!tests/*.h
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Environment and configuration
+.env
+*.local
+.envrc
+
+# Results and logs
+results/
+logs/
+*.log
+*.json.gz
+*.csv
+
+# Data files (except examples)
+data/results/
+data/logs/
+data/cache/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Docker volumes (if using local bind mounts)
+data/config/*
+!data/config/.gitkeep
+data/wordlists/*
+!data/wordlists/.gitkeep
+!data/wordlists/subdomains.txt
+
+# Coverage and profiling
+*.gcov
+*.gcda
+*.gcno
+coverage/
+gmon.out
+
+# Package manager
+node_modules/
+vendor/
+
+# OS specific
+Thumbs.db
+.Trash-*

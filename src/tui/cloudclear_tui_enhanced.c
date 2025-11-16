@@ -446,6 +446,7 @@ void tui_draw_candidate_list_enhanced(WINDOW *win, struct origin_ip_candidate *c
 void tui_draw_statistics_enhanced(WINDOW *win, struct tui_state *state) {
     int y = 2;
     int max_x = getmaxx(win);
+    (void)max_x; // Reserved for future use
 
     // Title
     wattron(win, COLOR_PAIR(COLOR_PAIR_ACCENT) | A_BOLD);
@@ -518,6 +519,7 @@ void tui_draw_statistics_enhanced(WINDOW *win, struct tui_state *state) {
 
 // Enhanced welcome screen
 void tui_show_welcome_screen_enhanced(struct tui_state *state) {
+    (void)state; // Unused parameter
     clear();
 
     int max_y, max_x;
@@ -571,6 +573,7 @@ void tui_show_welcome_screen_enhanced(struct tui_state *state) {
 
 // Enhanced help screen
 void tui_show_help_screen_enhanced(struct tui_state *state) {
+    (void)state; // Unused parameter
     clear();
 
     int max_y, max_x;

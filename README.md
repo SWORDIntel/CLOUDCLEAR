@@ -12,7 +12,9 @@
 
 *Penetrate CDN obfuscation. Discover true origin IPs. Master DNS intelligence.*
 
-[Quick Start](#-quick-start-docker-recommended) • [Features](#-core-capabilities) • [Documentation](docs/) • [Examples](#-usage-examples)
+**🚀 New: One-line setup with interactive launcher!** → `./cloudclear.sh`
+
+[Quick Start](#-quick-start) • [Features](#-core-capabilities) • [Documentation](docs/) • [Examples](#-usage-examples)
 
 </div>
 
@@ -151,9 +153,51 @@ Beautiful ncurses-based interface for real-time operation monitoring:
 
 See [Enhanced TUI Guide](docs/TUI_ENHANCED.md) for details
 
-## 📦 Quick Start (Docker Recommended)
+## 📦 Quick Start
 
-### Option 1: Docker Compose (Recommended)
+### Option 1: Unified Launcher Script (Recommended - Easiest!)
+
+**The simplest way to get started** - Just clone and run the interactive launcher:
+
+```bash
+# Clone repository
+git clone https://github.com/SWORDIntel/CLOUDCLEAR.git
+cd CLOUDCLEAR
+
+# Launch interactive menu
+./cloudclear.sh
+```
+
+That's it! The launcher will:
+- ✅ Automatically check and install dependencies
+- ✅ Present an interactive menu with all options
+- ✅ Guide you through building and running CloudClear
+- ✅ Handle Docker operations
+- ✅ Manage builds, tests, and installation
+
+**Quick Commands (Non-Interactive):**
+```bash
+./cloudclear.sh --install-deps       # Install all dependencies
+./cloudclear.sh --build-tui          # Build TUI version
+./cloudclear.sh --build-enhanced     # Build enhanced TUI (Unicode)
+./cloudclear.sh --build-all          # Build all versions
+./cloudclear.sh --docker-up          # Start with Docker Compose
+./cloudclear.sh --help               # Show all options
+```
+
+**First-Time Setup (3 Steps):**
+```bash
+# 1. Clone the repository
+git clone https://github.com/SWORDIntel/CLOUDCLEAR.git && cd CLOUDCLEAR
+
+# 2. Install dependencies (automatic with prompt)
+./cloudclear.sh --install-deps
+
+# 3. Build and run
+./cloudclear.sh --build-tui
+```
+
+### Option 2: Docker Compose
 
 ```bash
 # Clone repository
@@ -172,9 +216,12 @@ docker exec -it cloudclear-recon /app/cloudclear-recon -d example.com
 
 # Use interactive TUI
 docker-compose --profile interactive up cloudclear-tui
+
+# Or use the launcher script for Docker
+cd .. && ./cloudclear.sh --docker-up
 ```
 
-### Option 2: Docker Build
+### Option 3: Docker Build
 
 ```bash
 # Build image
@@ -188,16 +235,16 @@ docker run -it --rm \
   cloudclear:latest -d example.com
 ```
 
-### Option 3: Native Build
+### Option 4: Manual Native Build
+
+For advanced users who prefer manual control:
 
 ```bash
 # Install dependencies
 make deps
 
-# Build CloudClear
+# Build CloudClear (standard)
 make
-
-# Run
 ./cloudclear -d example.com
 
 # Or build with TUI
@@ -213,34 +260,29 @@ make recon
 ./cloudclear-recon -d example.com
 ```
 
-### Option 4: Unified Launcher Script (NEW! - Easiest Method)
-
-The unified launcher script provides an interactive menu for all CloudClear operations:
-
-```bash
-# Interactive mode - Shows menu with all options
-./cloudclear.sh
-
-# Non-interactive mode - Direct commands
-./cloudclear.sh --build-tui          # Build TUI version
-./cloudclear.sh --build-enhanced     # Build enhanced TUI
-./cloudclear.sh --build-all          # Build all versions
-./cloudclear.sh --install-deps       # Install dependencies
-./cloudclear.sh --docker-up          # Start with Docker
-./cloudclear.sh --help               # Show all options
-```
-
-**Interactive Menu Features:**
-- 🎯 Build & Run Options: Choose between standard, TUI, enhanced TUI, or recon builds
-- 🐳 Docker Operations: Build images, start/stop containers, view logs
-- 📦 Dependency Management: Automatic detection and installation
-- 🧹 Build Management: Clean builds, run tests
-- 📚 Help & Documentation: Integrated help system
-- ✨ Automatic dependency checking before each build
-
 ## 💡 Usage Examples
 
+### Using the Launcher Script (Easiest)
+
+```bash
+# Interactive mode - Just run and select from menu
+./cloudclear.sh
+# Then select: 1 → 2 (Build TUI) → Run scan when prompted
+
+# Build and run in one command
+./cloudclear.sh --build-tui
+# Follow the prompt to run immediately after build
+
+# Quick build all variants
+./cloudclear.sh --build-all
+
+# Docker operations via launcher
+./cloudclear.sh --docker-up
+```
+
 ### Basic Origin IP Discovery
+
+After building with `./cloudclear.sh` or `make`:
 
 ```bash
 # Discover origin IPs behind CDN
@@ -251,6 +293,10 @@ The unified launcher script provides an interactive menu for all CloudClear oper
 
 # Enable OPSEC mode with rate limiting
 ./cloudclear -d example.com --opsec --rate-limit 100
+
+# Using the interactive TUI (recommended for real-time monitoring)
+./cloudclear-tui
+# Then enter target domain when prompted
 ```
 
 ### Advanced Reconnaissance

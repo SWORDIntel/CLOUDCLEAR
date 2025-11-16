@@ -21,7 +21,7 @@
 #define DNS_BRUTEFORCE_H
 
 #include "../common/recon_common.h"
-#include "../../dns_enhanced.h"
+#include "dns_enhanced.h"
 
 // DNS brute-force specific constants
 #define BRUTEFORCE_MAX_WORDLIST_SIZE 100000

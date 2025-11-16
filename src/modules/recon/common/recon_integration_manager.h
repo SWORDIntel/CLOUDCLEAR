@@ -13,8 +13,8 @@
 #define RECON_INTEGRATION_MANAGER_H
 
 #include "recon_module_interface.h"
-#include "../../dns_enhanced.h"
-#include "../../config.h"
+#include "dns_enhanced.h"
+#include "config.h"
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 

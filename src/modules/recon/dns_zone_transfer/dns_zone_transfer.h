@@ -20,7 +20,7 @@
 #define DNS_ZONE_TRANSFER_H
 
 #include "../common/recon_common.h"
-#include "../../dns_enhanced.h"
+#include "dns_enhanced.h"
 
 // Zone transfer specific constants
 #define ZONE_TRANSFER_MAX_SERVERS 10

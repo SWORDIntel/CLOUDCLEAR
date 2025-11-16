@@ -206,7 +206,7 @@ test: $(TEST_DIR)/test_enhanced.c $(CORE_DIR)/dns_enhanced.c
 clean:
 	@echo "Cleaning build files..."
 	rm -f $(TARGET) $(TUI_TARGET) $(TUI_ENHANCED_TARGET) $(RECON_TARGET)
-	rm -rf $(BUILD_DIR)/*
+	find $(BUILD_DIR) -type f -delete 2>/dev/null || true
 	rm -f $(SRC_DIR)/*/*.o $(SRC_DIR)/*/*/*.o $(SRC_DIR)/*/*/*/*.o
 	@echo "✓ Clean completed"
 

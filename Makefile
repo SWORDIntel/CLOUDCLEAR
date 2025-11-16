@@ -267,3 +267,39 @@ help:
 	@echo ""
 	@echo "See docs/QUICKSTART.md for more information"
 	@echo "========================================="
+
+# Test build targets (skip dependency check for testing compilation)
+test-standard:
+	@echo "========================================="
+	@echo "TEST BUILD: Standard (skipping dep check)"
+	@echo "========================================="
+	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCES) $(LIBS) 2>&1 | head -100
+
+test-tui:
+	@echo "========================================="
+	@echo "TEST BUILD: TUI (skipping dep check)"
+	@echo "========================================="
+	$(CC) $(CFLAGS) -o $(TUI_TARGET) $(TUI_SOURCES) $(TUI_LIBS) 2>&1 | head -100
+
+test-tui-enhanced:
+	@echo "========================================="
+	@echo "TEST BUILD: TUI Enhanced (skipping dep check)"
+	@echo "========================================="
+	$(CC) $(CFLAGS) -o $(TUI_ENHANCED_TARGET) $(TUI_ENHANCED_SOURCES) $(TUI_LIBS) 2>&1 | head -100
+
+test-recon:
+	@echo "========================================="
+	@echo "TEST BUILD: Recon (skipping dep check)"
+	@echo "========================================="
+	$(CC) $(RECON_CFLAGS) -o $(RECON_TARGET) $(SOURCES) $(LIBS) 2>&1 | head -100
+
+test-all-builds:
+	@echo "Testing all build modes..."
+	@echo ""
+	@make test-standard || true
+	@echo ""
+	@make test-tui || true
+	@echo ""
+	@make test-tui-enhanced || true
+	@echo ""
+	@make test-recon || true

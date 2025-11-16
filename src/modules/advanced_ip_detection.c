@@ -3,7 +3,6 @@
  * Comprehensive techniques to discover origin IPs behind Cloudflare/CDNs
  */
 
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,6 +15,11 @@
 #include <resolv.h>
 #include <netdb.h>
 #include <curl/curl.h>
+
+// NI_NAMEFQDN is BSD-specific, not available on all Linux systems
+#ifndef NI_NAMEFQDN
+#define NI_NAMEFQDN 0
+#endif
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <openssl/x509.h>

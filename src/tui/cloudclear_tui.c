@@ -3,7 +3,6 @@
  * Interactive terminal interface for advanced IP detection
  */
 
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -788,7 +787,6 @@ int tui_handle_key_results_screen(struct tui_state *state, int key) {
 
         case '\n':
         case KEY_ENTER:
-        case 10:
             if (candidate_count > 0) {
                 tui_show_candidate_detail(state, state->selected_candidate);
             }

@@ -90,8 +90,8 @@ check_dependencies() {
         print_error "Missing dependencies: ${missing_deps[*]}"
         echo ""
 
-        # Auto-install if AUTO_INSTALL_DEPS env var is set or non-interactive
-        if [ "${AUTO_INSTALL_DEPS:-0}" == "1" ] || [ ! -t 0 ]; then
+        # Auto-install by default (set AUTO_INSTALL_DEPS=0 to disable)
+        if [ "${AUTO_INSTALL_DEPS:-1}" == "1" ] || [ ! -t 0 ]; then
             print_info "Auto-installing dependencies..."
             install_dependencies
         else
@@ -100,7 +100,7 @@ check_dependencies() {
                 install_dependencies
             else
                 print_error "Cannot proceed without required dependencies"
-                print_info "Hint: Set AUTO_INSTALL_DEPS=1 to auto-install dependencies"
+                print_info "Hint: Set AUTO_INSTALL_DEPS=1 to enable auto-install"
                 exit 1
             fi
         fi

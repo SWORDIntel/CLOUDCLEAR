@@ -13,7 +13,7 @@
 #define RECON_RESULT_AGGREGATOR_H
 
 #include "recon_module_interface.h"
-#include "../../dns_enhanced.h"
+#include "dns_enhanced.h"
 #include <sqlite3.h>
 #include <pthread.h>
 #include <stdatomic.h>

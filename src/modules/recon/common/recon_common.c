@@ -296,6 +296,9 @@ void recon_log_debug(const char *operation, const char *details) {
     time_str[strlen(time_str) - 1] = '\0';
 
     printf("[%s] DEBUG %s: %s\n", time_str, operation, details);
+#else
+    (void)operation; // Suppress unused warning in non-debug builds
+    (void)details;   // Suppress unused warning in non-debug builds
 #endif
 }
 

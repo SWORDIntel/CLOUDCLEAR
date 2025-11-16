@@ -89,6 +89,8 @@ int extract_ssl_certificate_info(SSL *ssl, struct ssl_certificate_info *cert_inf
     // Get validity dates
     ASN1_TIME *not_before = X509_get_notBefore(cert);
     ASN1_TIME *not_after = X509_get_notAfter(cert);
+    (void)not_before; // Reserved for future certificate validation
+    (void)not_after;  // Reserved for future certificate validation
 
     // Get Serial Number
     ASN1_INTEGER *serial = X509_get_serialNumber(cert);
@@ -350,6 +352,7 @@ int enumerate_mx_records(const char *domain, struct mx_record_info **mx_records,
             if (dn_expand(response, response + response_len, rdata + 2,
                          hostname, sizeof(hostname)) >= 0) {
                 strncpy(mx->hostname, hostname, sizeof(mx->hostname) - 1);
+                mx->hostname[sizeof(mx->hostname) - 1] = '\0';
 
                 // Resolve MX hostname to IPs
                 struct addrinfo hints, *res, *p;
@@ -411,6 +414,7 @@ int analyze_mail_server_infrastructure(const char *domain,
 
                 if (mx->reverse_dns_count < 8) {
                     strncpy(mx->reverse_dns[mx->reverse_dns_count], hostname, 255);
+                    mx->reverse_dns[mx->reverse_dns_count][255] = '\0';
                     mx->reverse_dns_count++;
                 }
 
@@ -502,6 +506,7 @@ int discover_srv_records(const char *domain, struct srv_record_info **srv_record
                             if (dn_expand(response, response + response_len, rdata + 6,
                                         target, sizeof(target)) >= 0) {
                                 strncpy(srv->target_host, target, sizeof(srv->target_host) - 1);
+                                srv->target_host[sizeof(srv->target_host) - 1] = '\0';
                                 (*count)++;
                             }
                         }
@@ -600,6 +605,7 @@ int detect_cloudflare_bypass_subdomains(const char *domain,
                 printf("   [+] Potential bypass subdomain: %s -> %s\n", subdomain, ip_str);
                 strncpy(bypass_info->bypass_subdomains[bypass_info->bypass_subdomain_count],
                        subdomain, 255);
+                bypass_info->bypass_subdomains[bypass_info->bypass_subdomain_count][255] = '\0';
                 bypass_info->bypass_subdomain_count++;
 
                 // Add to origin IPs
@@ -613,6 +619,7 @@ int detect_cloudflare_bypass_subdomains(const char *domain,
                 if (!ip_exists && bypass_info->origin_ip_count < 8) {
                     strncpy(bypass_info->origin_ips[bypass_info->origin_ip_count],
                            ip_str, INET_ADDRSTRLEN - 1);
+                    bypass_info->origin_ips[bypass_info->origin_ip_count][INET_ADDRSTRLEN - 1] = '\0';
                     bypass_info->origin_ip_count++;
                 }
             }
@@ -821,6 +828,7 @@ void rank_origin_ip_candidates(struct advanced_ip_detection_result *result) {
         strncpy(result->most_likely_origin_ip,
                result->candidates[0].ip_address,
                sizeof(result->most_likely_origin_ip) - 1);
+        result->most_likely_origin_ip[sizeof(result->most_likely_origin_ip) - 1] = '\0';
         result->origin_ip_confidence = result->candidates[0].confidence_score;
     }
 }
@@ -993,7 +1001,7 @@ int query_asn_information(const char *ip_address, struct asn_network_info *asn_i
                     if (ns_parserr(&handle, ns_s_an, 0, &rr) >= 0 && ns_rr_type(rr) == ns_t_txt) {
                         rdata = ns_rr_rdata(rr);
                         txt_len = rdata[0];
-                        if (txt_len < sizeof(asn_info->asn_name)) {
+                        if ((size_t)txt_len < sizeof(asn_info->asn_name)) {
                             memcpy(asn_info->asn_name, rdata + 1, txt_len);
                             asn_info->asn_name[txt_len] = '\0';
                         }
@@ -1030,6 +1038,7 @@ int cluster_ips_by_asn(struct advanced_ip_detection_result *result) {
             result->candidates[i].asn = asn_info.asn;
             strncpy(result->candidates[i].asn_name, asn_info.asn_name,
                    sizeof(result->candidates[i].asn_name) - 1);
+            result->candidates[i].asn_name[sizeof(result->candidates[i].asn_name) - 1] = '\0';
 
             // Check if ASN already exists in network list
             bool asn_exists = false;

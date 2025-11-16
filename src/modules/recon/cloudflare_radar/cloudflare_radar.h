@@ -20,7 +20,7 @@
 #define CLOUDFLARE_RADAR_H
 
 #include "../common/recon_common.h"
-#include "../../dns_enhanced.h"
+#include "dns_enhanced.h"
 #include <time.h>
 
 // Cloudflare Radar API constants

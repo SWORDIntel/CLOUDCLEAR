@@ -146,6 +146,7 @@ int opsec_rotate_proxy_chain(opsec_context_t *ctx) {
 
     // Find next operational proxy
     uint32_t start_index = ctx->current_proxy_index;
+    (void)start_index; // Reserved for cycle detection in future enhancement
     uint32_t attempts = 0;
 
     do {

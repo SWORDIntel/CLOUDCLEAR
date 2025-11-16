@@ -15,7 +15,9 @@
  * Compile: gcc -o cloudunflare cloudunflare.c -lcurl -lssl -lcrypto -ljson-c -lpthread -O3
  */
 
+#ifndef _GNU_SOURCE
 #define _GNU_SOURCE
+#endif
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,12 +37,12 @@
 #include "advanced_ip_detection.h"
 
 #ifdef RECON_MODULES_ENABLED
-#include "recon_modules/common/recon_common.h"
-#include "recon_modules/dns_zone_transfer/dns_zone_transfer.h"
-#include "recon_modules/dns_bruteforce/dns_bruteforce.h"
-#include "recon_modules/http_banner/http_banner.h"
-#include "recon_modules/port_scanner/port_scanner.h"
-#include "recon_modules/cloudflare_radar/cloudflare_radar.h"
+#include "recon/common/recon_common.h"
+#include "recon/dns_zone_transfer/dns_zone_transfer.h"
+#include "recon/dns_bruteforce/dns_bruteforce.h"
+#include "recon/http_banner/http_banner.h"
+#include "recon/port_scanner/port_scanner.h"
+#include "recon/cloudflare_radar/cloudflare_radar.h"
 #endif
 
 #define VERSION "2.0-Enhanced"

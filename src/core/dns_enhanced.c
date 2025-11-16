@@ -401,8 +401,7 @@ int perform_enhanced_dns_query(struct dns_query_context *query,
     if (!query || !chain || !result) return -1;
 
     memset(result, 0, sizeof(struct enhanced_dns_result));
-    strncpy(result->domain, query->query_name, sizeof(result->domain) - 1);
-    result->domain[sizeof(result->domain) - 1] = '\0';
+    snprintf(result->domain, sizeof(result->domain), "%s", query->query_name);
 
     struct timespec start_time, end_time;
     clock_gettime(CLOCK_MONOTONIC, &start_time);

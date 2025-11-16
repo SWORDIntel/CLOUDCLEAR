@@ -213,6 +213,31 @@ make recon
 ./cloudclear-recon -d example.com
 ```
 
+### Option 4: Unified Launcher Script (NEW! - Easiest Method)
+
+The unified launcher script provides an interactive menu for all CloudClear operations:
+
+```bash
+# Interactive mode - Shows menu with all options
+./cloudclear.sh
+
+# Non-interactive mode - Direct commands
+./cloudclear.sh --build-tui          # Build TUI version
+./cloudclear.sh --build-enhanced     # Build enhanced TUI
+./cloudclear.sh --build-all          # Build all versions
+./cloudclear.sh --install-deps       # Install dependencies
+./cloudclear.sh --docker-up          # Start with Docker
+./cloudclear.sh --help               # Show all options
+```
+
+**Interactive Menu Features:**
+- 🎯 Build & Run Options: Choose between standard, TUI, enhanced TUI, or recon builds
+- 🐳 Docker Operations: Build images, start/stop containers, view logs
+- 📦 Dependency Management: Automatic detection and installation
+- 🧹 Build Management: Clean builds, run tests
+- 📚 Help & Documentation: Integrated help system
+- ✨ Automatic dependency checking before each build
+
 ## 💡 Usage Examples
 
 ### Basic Origin IP Discovery

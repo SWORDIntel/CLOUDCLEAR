@@ -48,11 +48,14 @@ RECON_DNS_ZONE_SOURCES = $(MODULES_DIR)/recon/dns_zone_transfer/dns_zone_transfe
 RECON_DNS_BRUTE_SOURCES = $(MODULES_DIR)/recon/dns_bruteforce/dns_bruteforce.c
 RECON_HTTP_BANNER_SOURCES = $(MODULES_DIR)/recon/http_banner/http_banner.c
 RECON_PORT_SCANNER_SOURCES = $(MODULES_DIR)/recon/port_scanner/port_scanner.c
+RECON_CLOUDFLARE_RADAR_SOURCES = $(MODULES_DIR)/recon/cloudflare_radar/cloudflare_radar.c \
+                                  $(MODULES_DIR)/recon/cloudflare_radar/cloudflare_radar_api.c \
+                                  $(MODULES_DIR)/recon/cloudflare_radar/cloudflare_radar_parser.c
 
 # All reconnaissance sources
 RECON_SOURCES = $(RECON_COMMON_SOURCES) $(RECON_DNS_ZONE_SOURCES) \
                 $(RECON_DNS_BRUTE_SOURCES) $(RECON_HTTP_BANNER_SOURCES) \
-                $(RECON_PORT_SCANNER_SOURCES)
+                $(RECON_PORT_SCANNER_SOURCES) $(RECON_CLOUDFLARE_RADAR_SOURCES)
 
 # Combined sources for full build
 SOURCES = $(CORE_SOURCES) $(RECON_SOURCES)

@@ -40,6 +40,7 @@
 #include "recon_modules/dns_bruteforce/dns_bruteforce.h"
 #include "recon_modules/http_banner/http_banner.h"
 #include "recon_modules/port_scanner/port_scanner.h"
+#include "recon_modules/cloudflare_radar/cloudflare_radar.h"
 #endif
 
 #define VERSION "2.0-Enhanced"
@@ -879,6 +880,48 @@ int perform_advanced_reconnaissance(struct recon_session *session, const char *d
                 total_results += scan_result.open_ports;
             }
             port_scanner_cleanup_context(&port_ctx);
+        }
+
+        usleep(RECON_OPSEC_MIN_DELAY_MS * 1000);
+    }
+
+    // Sub-phase 5.5: Cloudflare Radar Comprehensive Scan
+    if (FEATURE_CLOUDFLARE_RADAR) {
+        printf("\n--- Sub-phase 5.5: Cloudflare Radar Comprehensive Scan ---\n");
+        radar_scan_context_t radar_ctx;
+
+        if (radar_scan_init_context(&radar_ctx) == 0) {
+            // Configure for comprehensive scan
+            radar_ctx.config.preferred_scan_type = RADAR_SCAN_COMPREHENSIVE;
+            radar_ctx.config.enable_comprehensive_scan = true;
+            radar_ctx.config.extract_technology_stack = true;
+            radar_ctx.config.analyze_security_posture = true;
+            radar_ctx.config.timeout_seconds = CLOUDFLARE_RADAR_API_TIMEOUT;
+
+            // Add domain to scan queue
+            radar_scan_add_domain(&radar_ctx, domain);
+
+            // Execute the scan
+            int radar_results = radar_scan_execute_all(&radar_ctx);
+            if (radar_results == 0 && radar_ctx.result_count > 0) {
+                printf("[RECON] Cloudflare Radar scan successful: %d results\n", radar_ctx.result_count);
+                radar_scan_print_results(&radar_ctx);
+
+                // Export results
+                char json_filename[512];
+                snprintf(json_filename, sizeof(json_filename), "radar_results_%s.json", domain);
+                radar_scan_export_json(&radar_ctx, json_filename);
+                printf("[RECON] Results exported to %s\n", json_filename);
+
+                total_results += radar_ctx.result_count;
+            } else if (radar_ctx.result_count > 0) {
+                printf("[RECON] Cloudflare Radar scan completed with errors\n");
+                radar_scan_print_results(&radar_ctx);
+                total_results += radar_ctx.result_count;
+            } else {
+                printf("[RECON] Cloudflare Radar scan failed or returned no results\n");
+            }
+            radar_scan_cleanup_context(&radar_ctx);
         }
     }
 

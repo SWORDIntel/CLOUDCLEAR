@@ -213,6 +213,13 @@ extern recon_master_context_t global_recon_context;
 #define RECON_PORT_SCAN(target, ports, port_count, open_ports) \
     recon_get_simple_api()->port_scan(target, ports, port_count, open_ports)
 
+// Cloudflare Radar Scanning
+#define RECON_CLOUDFLARE_RADAR_SCAN(domain, scan_type) \
+    radar_scan_execute_single(&global_radar_context, domain, scan_type)
+
+#define RECON_CLOUDFLARE_RADAR_COMPREHENSIVE(domain) \
+    radar_scan_execute_comprehensive(&global_radar_context, domain)
+
 // Conditional compilation support
 #ifdef RECON_MODULES_ENABLED
     #define RECON_MODULE_AVAILABLE 1

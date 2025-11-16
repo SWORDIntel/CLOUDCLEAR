@@ -24,8 +24,8 @@ int radar_scan_init_context(radar_scan_context_t *ctx) {
     memset(ctx, 0, sizeof(*ctx));
 
     // Initialize base context
-    ctx->base_ctx.target_count = 0;
-    ctx->base_ctx.operation_mode = RECON_MODE_NORMAL;
+    // Note: Base context initialization removed - members don't exist in current struct definition
+    // TODO: Update struct definition if these fields are needed
 
     // Initialize results array
     ctx->max_results = CLOUDFLARE_RADAR_MAX_RESULTS;
@@ -54,7 +54,7 @@ int radar_scan_init_context(radar_scan_context_t *ctx) {
     ctx->config.extract_technology_stack = true;
     ctx->config.analyze_security_posture = true;
     ctx->config.follow_redirects = true;
-    ctx->config.opsec.enabled = true;
+    // Note: opsec.enabled field doesn't exist in current struct definition
     ctx->config.opsec.paranoia_level = OPSEC_PARANOIA_NORMAL;
 
     return 0;

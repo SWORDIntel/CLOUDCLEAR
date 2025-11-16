@@ -227,6 +227,10 @@ uint32_t opsec_calculate_optimal_delay(const opsec_context_t *ctx);
 void opsec_simulate_human_behavior(opsec_context_t *ctx);
 int opsec_randomize_timing_pattern(timing_config_t *timing);
 
+// Proxy management functions
+bool opsec_should_rotate_proxy(const opsec_context_t *ctx);
+struct proxy_node* opsec_get_current_proxy(const opsec_context_t *ctx);
+
 // Traffic obfuscation
 int opsec_obfuscate_http_headers(char *headers, size_t max_size, const traffic_obfuscation_t *config);
 int opsec_randomize_user_agent(char *user_agent, size_t max_size);

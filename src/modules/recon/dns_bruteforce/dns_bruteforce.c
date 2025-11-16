@@ -90,7 +90,13 @@ int bruteforce_execute(bruteforce_context_t *ctx) {
     subdomain_result_t result;
     memset(&result, 0, sizeof(result));
     strcpy(result.subdomain, "www");
-    snprintf(result.full_domain, sizeof(result.full_domain), "www.%s", ctx->target_domain);
+    // Limit subdomain to ensure full domain fits in buffer
+    int max_domain_len = sizeof(result.full_domain) - 5; // "www." + null
+    if (strlen(ctx->target_domain) > (size_t)max_domain_len) {
+        snprintf(result.full_domain, sizeof(result.full_domain), "www.[truncated]");
+    } else {
+        snprintf(result.full_domain, sizeof(result.full_domain), "www.%s", ctx->target_domain);
+    }
     strcpy(result.ip_address, "192.168.1.1");
     result.record_type = DNS_TYPE_A;
     result.discovered = time(NULL);

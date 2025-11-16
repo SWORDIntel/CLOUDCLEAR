@@ -142,7 +142,7 @@ int zone_transfer_add_server(zone_transfer_context_t *ctx, const char *hostname,
     // Resolve hostname to IP
     recon_target_t target;
     if (recon_add_target(&target, hostname, port) == 0) {
-        strncpy(server->ip_address, target.ip_address, INET6_ADDRSTRLEN - 1);
+        snprintf(server->ip_address, INET6_ADDRSTRLEN, "%s", target.ip_address);
     }
 
     ctx->server_count++;
@@ -406,6 +406,7 @@ int zone_transfer_attempt_axfr(zone_transfer_context_t *ctx, const char *domain,
     uint32_t total_received = 0;
     bool transfer_complete = false;
     uint32_t soa_count = 0; // SOA records mark start and end of zone transfer
+    (void)soa_count; // Reserved for SOA counting implementation
 
     while (!transfer_complete && total_received < ZONE_TRANSFER_BUFFER_SIZE - 1024) {
         int bytes_received = zone_transfer_receive_response(sockfd,
@@ -995,11 +996,12 @@ int zone_transfer_parse_records(const char *raw_data, size_t data_len, zone_reco
         } else {
             // Uncompressed name
             const uint8_t *name_start = ptr;
+            (void)name_start; // Reserved for name validation
             while (ptr < end && *ptr != 0) {
                 uint8_t label_len = *ptr++;
                 if (ptr + label_len > end) break;
 
-                if (name_len + label_len + 1 < sizeof(name_buffer)) {
+                if (name_len + label_len + 1 < (int)sizeof(name_buffer)) {
                     if (name_len > 0) name_buffer[name_len++] = '.';
                     memcpy(name_buffer + name_len, ptr, label_len);
                     name_len += label_len;
@@ -1010,7 +1012,7 @@ int zone_transfer_parse_records(const char *raw_data, size_t data_len, zone_reco
             name_buffer[name_len] = '\0';
         }
 
-        strncpy(record->name, name_buffer, RECON_MAX_DOMAIN_LEN - 1);
+        snprintf(record->name, RECON_MAX_DOMAIN_LEN, "%s", name_buffer);
 
         if (ptr + 10 > end) break; // Need at least TYPE, CLASS, TTL, RDLENGTH
 
@@ -1068,6 +1070,7 @@ void *zone_transfer_worker_thread(void *arg) {
     if (!arg) return NULL;
 
     zone_transfer_context_t *ctx = (zone_transfer_context_t*)arg;
+    (void)ctx; // Reserved for parallel zone transfer implementation
 
     // This would be used for parallel zone transfers across multiple domains
     // For now, return success

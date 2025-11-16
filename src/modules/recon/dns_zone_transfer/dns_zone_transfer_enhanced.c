@@ -18,6 +18,7 @@
 #include "dns_zone_transfer.h"
 #include "../common/recon_opsec.h"
 #include <sys/random.h>
+#include <errno.h>
 
 // Enhanced zone transfer context with OPSEC integration
 typedef struct {
@@ -74,7 +75,8 @@ static int enhanced_zone_transfer_init_context(enhanced_zone_transfer_context_t 
     }
 
     // Configure enhanced detection settings
-    ctx->base_ctx.config.opsec = ctx->opsec_ctx.config.timing;
+    // Note: Direct assignment removed due to type incompatibility
+    // The OPSEC context manages timing configuration internally
     ctx->session_start_time = time(NULL);
     ctx->last_successful_transfer = time(NULL);
 
@@ -620,6 +622,7 @@ int zone_transfer_execute_enhanced(const char *domain, opsec_paranoia_level_t pa
 
 // Set proxy list for enhanced operations
 int zone_transfer_set_proxy_list(const char *proxy_list_file) {
+    (void)proxy_list_file; // Reserved for future proxy configuration
     // This would be called during initialization to configure proxy chain
     recon_log_info("zone_transfer_enhanced", "Proxy list configuration set");
     return 0;

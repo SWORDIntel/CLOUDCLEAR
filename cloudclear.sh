@@ -89,12 +89,20 @@ check_dependencies() {
         echo ""
         print_error "Missing dependencies: ${missing_deps[*]}"
         echo ""
-        read -p "Do you want to install missing dependencies? (y/n): " install_choice
-        if [[ "$install_choice" == "y" || "$install_choice" == "Y" ]]; then
+
+        # Auto-install if AUTO_INSTALL_DEPS env var is set or non-interactive
+        if [ "${AUTO_INSTALL_DEPS:-0}" == "1" ] || [ ! -t 0 ]; then
+            print_info "Auto-installing dependencies..."
             install_dependencies
         else
-            print_error "Cannot proceed without required dependencies"
-            exit 1
+            read -p "Do you want to install missing dependencies? (y/n): " install_choice
+            if [[ "$install_choice" == "y" || "$install_choice" == "Y" ]]; then
+                install_dependencies
+            else
+                print_error "Cannot proceed without required dependencies"
+                print_info "Hint: Set AUTO_INSTALL_DEPS=1 to auto-install dependencies"
+                exit 1
+            fi
         fi
     else
         print_success "All dependencies satisfied"
@@ -106,11 +114,34 @@ check_dependencies() {
 install_dependencies() {
     print_section "Installing Dependencies"
     echo ""
-    sudo apt-get update
-    sudo apt-get install -y libcurl4-openssl-dev libssl-dev libjson-c-dev libncurses-dev build-essential pkg-config
-    echo ""
-    print_success "Dependencies installed successfully"
-    echo ""
+
+    # Check if sudo is available and working
+    if ! sudo -n true 2>/dev/null; then
+        print_warning "sudo requires password or has permission issues"
+        print_info "Attempting to fix sudo permissions..."
+
+        # Try to provide helpful instructions
+        echo "If you have root access, run these commands:"
+        echo "  sudo chown root:root /etc/sudo.conf /etc/sudoers"
+        echo "  sudo chmod 0440 /etc/sudoers"
+        echo "  sudo chmod 0644 /etc/sudo.conf"
+        echo ""
+    fi
+
+    print_info "Installing: libcurl4-openssl-dev libssl-dev libjson-c-dev libncurses-dev build-essential pkg-config"
+
+    if sudo apt-get update && sudo apt-get install -y libcurl4-openssl-dev libssl-dev libjson-c-dev libncurses-dev build-essential pkg-config; then
+        echo ""
+        print_success "Dependencies installed successfully"
+        echo ""
+    else
+        echo ""
+        print_error "Failed to install dependencies"
+        print_info "Please install manually with:"
+        echo "  sudo apt-get install -y libcurl4-openssl-dev libssl-dev libjson-c-dev libncurses-dev build-essential pkg-config"
+        echo ""
+        exit 1
+    fi
 }
 
 # Main menu

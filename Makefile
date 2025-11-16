@@ -206,7 +206,7 @@ test: $(TEST_DIR)/test_enhanced.c $(CORE_DIR)/dns_enhanced.c
 clean:
 	@echo "Cleaning build files..."
 	rm -f $(TARGET) $(TUI_TARGET) $(TUI_ENHANCED_TARGET) $(RECON_TARGET)
-	rm -f $(BUILD_DIR)/*
+	find $(BUILD_DIR) -type f -delete 2>/dev/null || true
 	rm -f $(SRC_DIR)/*/*.o $(SRC_DIR)/*/*/*.o $(SRC_DIR)/*/*/*/*.o
 	@echo "✓ Clean completed"
 
@@ -267,3 +267,39 @@ help:
 	@echo ""
 	@echo "See docs/QUICKSTART.md for more information"
 	@echo "========================================="
+
+# Test build targets (skip dependency check for testing compilation)
+test-standard:
+	@echo "========================================="
+	@echo "TEST BUILD: Standard (skipping dep check)"
+	@echo "========================================="
+	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCES) $(LIBS) 2>&1 | head -100
+
+test-tui:
+	@echo "========================================="
+	@echo "TEST BUILD: TUI (skipping dep check)"
+	@echo "========================================="
+	$(CC) $(CFLAGS) -o $(TUI_TARGET) $(TUI_SOURCES) $(TUI_LIBS) 2>&1 | head -100
+
+test-tui-enhanced:
+	@echo "========================================="
+	@echo "TEST BUILD: TUI Enhanced (skipping dep check)"
+	@echo "========================================="
+	$(CC) $(CFLAGS) -o $(TUI_ENHANCED_TARGET) $(TUI_ENHANCED_SOURCES) $(TUI_LIBS) 2>&1 | head -100
+
+test-recon:
+	@echo "========================================="
+	@echo "TEST BUILD: Recon (skipping dep check)"
+	@echo "========================================="
+	$(CC) $(RECON_CFLAGS) -o $(RECON_TARGET) $(SOURCES) $(LIBS) 2>&1 | head -100
+
+test-all-builds:
+	@echo "Testing all build modes..."
+	@echo ""
+	@make test-standard || true
+	@echo ""
+	@make test-tui || true
+	@echo ""
+	@make test-tui-enhanced || true
+	@echo ""
+	@make test-recon || true

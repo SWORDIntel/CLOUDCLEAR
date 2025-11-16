@@ -413,8 +413,7 @@ int analyze_mail_server_infrastructure(const char *domain,
                 printf("      -> PTR: %s\n", hostname);
 
                 if (mx->reverse_dns_count < 8) {
-                    strncpy(mx->reverse_dns[mx->reverse_dns_count], hostname, 255);
-                    mx->reverse_dns[mx->reverse_dns_count][255] = '\0';
+                    snprintf(mx->reverse_dns[mx->reverse_dns_count], 256, "%s", hostname);
                     mx->reverse_dns_count++;
                 }
 
@@ -603,9 +602,8 @@ int detect_cloudflare_bypass_subdomains(const char *domain,
             // Check if IP is in Cloudflare range
             if (!is_ip_in_cloudflare_range(ip_str)) {
                 printf("   [+] Potential bypass subdomain: %s -> %s\n", subdomain, ip_str);
-                strncpy(bypass_info->bypass_subdomains[bypass_info->bypass_subdomain_count],
-                       subdomain, 255);
-                bypass_info->bypass_subdomains[bypass_info->bypass_subdomain_count][255] = '\0';
+                snprintf(bypass_info->bypass_subdomains[bypass_info->bypass_subdomain_count],
+                       256, "%s", subdomain);
                 bypass_info->bypass_subdomain_count++;
 
                 // Add to origin IPs
@@ -617,9 +615,8 @@ int detect_cloudflare_bypass_subdomains(const char *domain,
                     }
                 }
                 if (!ip_exists && bypass_info->origin_ip_count < 8) {
-                    strncpy(bypass_info->origin_ips[bypass_info->origin_ip_count],
-                           ip_str, INET_ADDRSTRLEN - 1);
-                    bypass_info->origin_ips[bypass_info->origin_ip_count][INET_ADDRSTRLEN - 1] = '\0';
+                    snprintf(bypass_info->origin_ips[bypass_info->origin_ip_count],
+                           INET_ADDRSTRLEN, "%s", ip_str);
                     bypass_info->origin_ip_count++;
                 }
             }
@@ -1036,9 +1033,8 @@ int cluster_ips_by_asn(struct advanced_ip_detection_result *result) {
 
             // Store in candidate
             result->candidates[i].asn = asn_info.asn;
-            strncpy(result->candidates[i].asn_name, asn_info.asn_name,
-                   sizeof(result->candidates[i].asn_name) - 1);
-            result->candidates[i].asn_name[sizeof(result->candidates[i].asn_name) - 1] = '\0';
+            snprintf(result->candidates[i].asn_name,
+                   sizeof(result->candidates[i].asn_name), "%s", asn_info.asn_name);
 
             // Check if ASN already exists in network list
             bool asn_exists = false;

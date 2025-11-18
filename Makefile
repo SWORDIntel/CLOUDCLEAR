@@ -52,10 +52,32 @@ RECON_CLOUDFLARE_RADAR_SOURCES = $(MODULES_DIR)/recon/cloudflare_radar/cloudflar
                                   $(MODULES_DIR)/recon/cloudflare_radar/cloudflare_radar_api.c \
                                   $(MODULES_DIR)/recon/cloudflare_radar/cloudflare_radar_parser.c
 
+# Cloud provider module sources
+CLOUD_DIR = $(MODULES_DIR)/cloud
+CLOUD_AKAMAI_SOURCES = $(CLOUD_DIR)/akamai/akamai.c
+CLOUD_AWS_SOURCES = $(CLOUD_DIR)/aws/aws.c
+CLOUD_AZURE_SOURCES = $(CLOUD_DIR)/azure/azure.c
+CLOUD_GCP_SOURCES = $(CLOUD_DIR)/gcp/gcp.c
+CLOUD_FASTLY_SOURCES = $(CLOUD_DIR)/fastly/fastly.c
+CLOUD_DIGITALOCEAN_SOURCES = $(CLOUD_DIR)/digitalocean/digitalocean.c
+CLOUD_ORACLE_SOURCES = $(CLOUD_DIR)/oracle/oracle.c
+CLOUD_ALIBABA_SOURCES = $(CLOUD_DIR)/alibaba/alibaba.c
+CLOUD_SHODAN_SOURCES = $(CLOUD_DIR)/shodan/shodan_api.c
+CLOUD_CENSYS_SOURCES = $(CLOUD_DIR)/censys/censys_api.c
+CLOUD_VIRUSTOTAL_SOURCES = $(CLOUD_DIR)/virustotal/virustotal_api.c
+CLOUD_DETECTOR_SOURCES = $(CLOUD_DIR)/cloud_detector.c
+
+# All cloud module sources
+CLOUD_SOURCES = $(CLOUD_AKAMAI_SOURCES) $(CLOUD_AWS_SOURCES) $(CLOUD_AZURE_SOURCES) \
+                $(CLOUD_GCP_SOURCES) $(CLOUD_FASTLY_SOURCES) $(CLOUD_DIGITALOCEAN_SOURCES) \
+                $(CLOUD_ORACLE_SOURCES) $(CLOUD_ALIBABA_SOURCES) $(CLOUD_SHODAN_SOURCES) \
+                $(CLOUD_CENSYS_SOURCES) $(CLOUD_VIRUSTOTAL_SOURCES) $(CLOUD_DETECTOR_SOURCES)
+
 # All reconnaissance sources
 RECON_SOURCES = $(RECON_COMMON_SOURCES) $(RECON_DNS_ZONE_SOURCES) \
                 $(RECON_DNS_BRUTE_SOURCES) $(RECON_HTTP_BANNER_SOURCES) \
-                $(RECON_PORT_SCANNER_SOURCES) $(RECON_CLOUDFLARE_RADAR_SOURCES)
+                $(RECON_PORT_SCANNER_SOURCES) $(RECON_CLOUDFLARE_RADAR_SOURCES) \
+                $(CLOUD_SOURCES)
 
 # Combined sources for full build
 SOURCES = $(CORE_SOURCES) $(RECON_SOURCES)

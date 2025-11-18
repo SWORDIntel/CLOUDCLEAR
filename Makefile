@@ -28,12 +28,16 @@ CORE_SOURCES = $(CORE_DIR)/cloudunflare.c \
 
 TUI_SOURCES = $(TUI_DIR)/cloudunflare_tui_main.c \
               $(TUI_DIR)/cloudclear_tui.c \
+              $(TUI_DIR)/cloudclear_tui_config.c \
+              $(TUI_DIR)/cloudclear_tui_screens.c \
               $(CORE_DIR)/dns_enhanced.c \
               $(MODULES_DIR)/advanced_ip_detection.c
 
 TUI_ENHANCED_SOURCES = $(TUI_DIR)/cloudunflare_tui_main.c \
                        $(TUI_DIR)/cloudclear_tui.c \
                        $(TUI_DIR)/cloudclear_tui_enhanced.c \
+                       $(TUI_DIR)/cloudclear_tui_config.c \
+                       $(TUI_DIR)/cloudclear_tui_screens.c \
                        $(CORE_DIR)/dns_enhanced.c \
                        $(MODULES_DIR)/advanced_ip_detection.c
 

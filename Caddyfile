@@ -1,0 +1,87 @@
+# CloudClear Caddy Configuration
+# Automatic HTTPS with Let's Encrypt
+
+# Main domain configuration
+{$CLOUDCLEAR_DOMAIN:cloudclear.local} {
+    # Root site - redirect to subdomain
+    redir https://{$CLOUDCLEAR_SUBDOMAIN:scan}.{$CLOUDCLEAR_DOMAIN:cloudclear.local}{uri} permanent
+}
+
+# Subdomain for CloudClear Scanner
+{$CLOUDCLEAR_SUBDOMAIN:scan}.{$CLOUDCLEAR_DOMAIN:cloudclear.local} {
+    # Serve static web UI
+    root * /srv/web
+    file_server
+
+    # Enable gzip compression
+    encode gzip zstd
+
+    # API proxy to backend
+    handle /api/* {
+        reverse_proxy cloudclear-api:8080 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
+        }
+    }
+
+    # WebSocket support for real-time updates
+    handle /ws {
+        reverse_proxy cloudclear-api:8080 {
+            header_up Upgrade {>Upgrade}
+            header_up Connection {>Connection}
+        }
+    }
+
+    # Security headers
+    header {
+        # TEMPEST Class C Security Headers
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "geolocation=(), microphone=(), camera=()"
+        Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' wss://{$CLOUDCLEAR_SUBDOMAIN:scan}.{$CLOUDCLEAR_DOMAIN:cloudclear.local};"
+
+        # Custom CloudClear headers
+        X-CloudClear-Version "2.0-Enhanced-Cloud"
+        X-Powered-By "CloudClear"
+    }
+
+    # Logging
+    log {
+        output file /data/logs/access.log {
+            roll_size 100mb
+            roll_keep 10
+            roll_keep_for 720h
+        }
+        format json
+        level INFO
+    }
+
+    # Error page
+    handle_errors {
+        @404 expression {http.error.status_code} == 404
+        handle @404 {
+            rewrite * /404.html
+            file_server
+        }
+    }
+}
+
+# Admin panel subdomain (optional)
+admin.{$CLOUDCLEAR_DOMAIN:cloudclear.local} {
+    root * /srv/web/admin
+    file_server
+
+    # Basic auth for admin panel
+    basicauth * {
+        admin $2a$14$Zkx19XLiW6VYouLHR5NmfOFU0z2GTNmpkT/5qqR7hx7wHb4f1yFxS
+    }
+
+    handle /api/* {
+        reverse_proxy cloudclear-api:8080
+    }
+}

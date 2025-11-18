@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  # CloudClear API Backend
+  cloudclear-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cloudclear-api
+    restart: unless-stopped
+    environment:
+      # Docker environment marker
+      - DOCKER_CONTAINER=true
+      # Intelligence Service API Keys
+      - SHODAN_API_KEY=${SHODAN_API_KEY:-}
+      - CENSYS_API_ID=${CENSYS_API_ID:-}
+      - CENSYS_API_SECRET=${CENSYS_API_SECRET:-}
+      - VIRUSTOTAL_API_KEY=${VIRUSTOTAL_API_KEY:-}
+      # Cloud Provider API Keys
+      - CLOUDFLARE_API_KEY=${CLOUDFLARE_API_KEY:-}
+      - CLOUDFLARE_API_EMAIL=${CLOUDFLARE_API_EMAIL:-}
+      - CLOUDFLARE_ACCOUNT_ID=${CLOUDFLARE_ACCOUNT_ID:-}
+      - AKAMAI_CLIENT_TOKEN=${AKAMAI_CLIENT_TOKEN:-}
+      - AKAMAI_CLIENT_SECRET=${AKAMAI_CLIENT_SECRET:-}
+      - AKAMAI_ACCESS_TOKEN=${AKAMAI_ACCESS_TOKEN:-}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_SESSION_TOKEN=${AWS_SESSION_TOKEN:-}
+      - AZURE_SUBSCRIPTION_ID=${AZURE_SUBSCRIPTION_ID:-}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID:-}
+      - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET:-}
+      - AZURE_TENANT_ID=${AZURE_TENANT_ID:-}
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID:-}
+      - GCP_SERVICE_ACCOUNT_KEY=${GCP_SERVICE_ACCOUNT_KEY:-}
+      - FASTLY_API_KEY=${FASTLY_API_KEY:-}
+      - DIGITALOCEAN_API_TOKEN=${DIGITALOCEAN_API_TOKEN:-}
+      - ORACLE_CLOUD_TENANCY_OCID=${ORACLE_CLOUD_TENANCY_OCID:-}
+      - ORACLE_CLOUD_USER_OCID=${ORACLE_CLOUD_USER_OCID:-}
+      - ORACLE_CLOUD_FINGERPRINT=${ORACLE_CLOUD_FINGERPRINT:-}
+      - ALIBABA_ACCESS_KEY_ID=${ALIBABA_ACCESS_KEY_ID:-}
+      - ALIBABA_ACCESS_KEY_SECRET=${ALIBABA_ACCESS_KEY_SECRET:-}
+      - IMPERVA_API_ID=${IMPERVA_API_ID:-}
+      - IMPERVA_API_KEY=${IMPERVA_API_KEY:-}
+      - SUCURI_API_KEY=${SUCURI_API_KEY:-}
+      - SUCURI_API_SECRET=${SUCURI_API_SECRET:-}
+      - STACKPATH_CLIENT_ID=${STACKPATH_CLIENT_ID:-}
+      - STACKPATH_CLIENT_SECRET=${STACKPATH_CLIENT_SECRET:-}
+      # API Server Config
+      - API_HOST=0.0.0.0
+      - API_PORT=8080
+      - API_WORKERS=4
+      - MAX_CONCURRENT_SCANS=${MAX_CONCURRENT_SCANS:-10}
+      - SCAN_TIMEOUT=${SCAN_TIMEOUT:-300}
+      - SECRET_KEY=${SECRET_KEY:-cloudclear-secret-key-change-me}
+    volumes:
+      - cloudclear-data:/root/.cloudclear
+      - ./logs:/app/logs
+    networks:
+      - cloudclear-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    labels:
+      - "com.cloudclear.service=api"
+      - "com.cloudclear.description=CloudClear API Server with WebSocket support"
+
+  # Caddy Reverse Proxy
+  caddy:
+    image: caddy:2-alpine
+    container_name: cloudclear-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"  # HTTP/3
+    environment:
+      - CLOUDCLEAR_DOMAIN=${CLOUDCLEAR_DOMAIN:-cloudclear.local}
+      - CLOUDCLEAR_SUBDOMAIN=${CLOUDCLEAR_SUBDOMAIN:-scan}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - ./web:/srv/web
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - cloudclear-network
+    depends_on:
+      - cloudclear-api
+    labels:
+      - "com.cloudclear.service=proxy"
+
+networks:
+  cloudclear-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
+
+volumes:
+  cloudclear-data:
+    driver: local
+  caddy-data:
+    driver: local
+  caddy-config:
+    driver: local

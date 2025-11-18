@@ -1,0 +1,44 @@
+# CloudClear Docker Ignore
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+docs/
+QUICKSTART.md
+INSTALLATION_COMPLETE.txt
+
+# Build artifacts
+*.o
+*.a
+build/
+*.so
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Config (will be provided via environment)
+.env
+.cloudclear/
+
+# Node modules (if any)
+node_modules/

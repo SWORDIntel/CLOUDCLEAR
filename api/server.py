@@ -444,11 +444,32 @@ def handle_ping():
     emit('pong', {'timestamp': datetime.utcnow().isoformat()})
 
 if __name__ == '__main__':
+    # Check if running in Docker (recommended deployment method)
+    in_docker = os.path.exists('/.dockerenv') or os.environ.get('DOCKER_CONTAINER', False)
+
+    if not in_docker:
+        logger.warning("=" * 70)
+        logger.warning("WARNING: API Server is designed to run in Docker!")
+        logger.warning("For production deployment, use: docker-compose up -d")
+        logger.warning("For local testing, use the CLI/TUI instead: ./cloudclear example.com")
+        logger.warning("=" * 70)
+
     port = int(os.environ.get('API_PORT', 8080))
     host = os.environ.get('API_HOST', '0.0.0.0')
 
-    logger.info(f"Starting CloudClear API Server on {host}:{port}")
+    logger.info("=" * 70)
+    logger.info(f"CloudClear API Server v2.0-Enhanced-Cloud")
+    logger.info(f"Starting on {host}:{port}")
+    logger.info(f"Environment: {'Docker' if in_docker else 'Standalone (not recommended)'}")
     logger.info(f"Max concurrent scans: {MAX_CONCURRENT_SCANS}")
     logger.info(f"Scan timeout: {SCAN_TIMEOUT}s")
+    logger.info(f"CloudClear binary: {CLOUDCLEAR_BIN}")
+    logger.info("=" * 70)
 
-    socketio.run(app, host=host, port=port, debug=False, allow_unsafe_werkzeug=True)
+    try:
+        socketio.run(app, host=host, port=port, debug=False, allow_unsafe_werkzeug=True)
+    except KeyboardInterrupt:
+        logger.info("Shutting down CloudClear API Server...")
+    except Exception as e:
+        logger.error(f"Fatal error: {e}")
+        raise

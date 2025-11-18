@@ -63,6 +63,35 @@ print_info() {
     echo -e "${BLUE}ℹ $1${NC}"
 }
 
+# Progress bar
+show_progress() {
+    local current=$1
+    local total=$2
+    local width=50
+    local percentage=$((current * 100 / total))
+    local completed=$((width * current / total))
+    local remaining=$((width - completed))
+
+    printf "\r${CYAN}Progress: ["
+    printf "%${completed}s" | tr ' ' '█'
+    printf "%${remaining}s" | tr ' ' '░'
+    printf "] %3d%%${NC}" $percentage
+}
+
+# Spinner for long operations
+spinner() {
+    local pid=$1
+    local delay=0.1
+    local spinstr='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+    while ps -p $pid > /dev/null 2>&1; do
+        local temp=${spinstr#?}
+        printf "\r${CYAN}%c${NC} " "$spinstr"
+        spinstr=$temp${spinstr%"$temp"}
+        sleep $delay
+    done
+    printf "\r"
+}
+
 # Detect OS
 detect_os() {
     if [[ "$OSTYPE" == "linux-gnu"* ]]; then
@@ -87,7 +116,12 @@ install_dependencies() {
     case $OS in
         ubuntu|debian)
             print_info "Detected Debian/Ubuntu system"
-            sudo apt-get update -qq
+            echo -n "Updating package lists... "
+            sudo apt-get update -qq 2>&1 > /dev/null &
+            spinner $!
+            print_success "Package lists updated"
+
+            print_info "Installing dependencies (this may take a moment)..."
             sudo apt-get install -y -qq \
                 build-essential \
                 gcc \
@@ -199,12 +233,25 @@ verify_dependencies() {
 build_cloudclear() {
     print_section "Building CloudClear"
 
+    local total_steps=4
+    local current_step=0
+
+    # Step 1: Clean
+    current_step=1
+    show_progress $current_step $total_steps
+    echo -ne "\r"
     print_info "Cleaning previous builds..."
     make clean &> /dev/null || true
+    print_success "Clean completed"
 
-    print_info "Building main executable..."
+    # Step 2: Build main
+    current_step=2
+    show_progress $current_step $total_steps
+    echo -ne "\r"
+    print_info "Building main executable (cloudclear)..."
     if make all 2>&1 | grep -E "error|undefined reference" > /tmp/build_errors.txt; then
         if [ -s /tmp/build_errors.txt ]; then
+            echo
             print_error "Build failed with errors"
             cat /tmp/build_errors.txt
             exit 1
@@ -212,6 +259,10 @@ build_cloudclear() {
     fi
     print_success "Main executable built: ./cloudclear"
 
+    # Step 3: Build TUI
+    current_step=3
+    show_progress $current_step $total_steps
+    echo -ne "\r"
     print_info "Building TUI (Text User Interface)..."
     if make tui 2>&1 | grep -E "error|undefined reference" > /tmp/build_errors.txt; then
         if [ -s /tmp/build_errors.txt ]; then
@@ -220,6 +271,10 @@ build_cloudclear() {
     fi
     print_success "TUI built: ./cloudclear-tui"
 
+    # Step 4: Build Enhanced TUI
+    current_step=4
+    show_progress $current_step $total_steps
+    echo -ne "\r"
     print_info "Building Enhanced TUI with Cloud Integration..."
     if make tui-enhanced 2>&1 | grep -E "error|undefined reference" > /tmp/build_errors.txt; then
         if [ -s /tmp/build_errors.txt ]; then
@@ -228,6 +283,9 @@ build_cloudclear() {
     fi
     print_success "Enhanced TUI built: ./cloudclear-tui-enhanced"
 
+    # Final progress
+    show_progress $total_steps $total_steps
+    echo
     print_success "Build completed successfully!"
 }
 
@@ -361,25 +419,41 @@ print_completion() {
     echo -e "  • Manual config: Edit .env file or ~/.cloudclear/config.enc"
     echo
 
-    echo -e "${CYAN}Supported Integrations (20+):${NC}"
-    echo -e "  ${GREEN}✓${NC} Akamai Edge      ${GREEN}✓${NC} AWS CloudFront   ${GREEN}✓${NC} Azure Front Door"
-    echo -e "  ${GREEN}✓${NC} GCP Cloud CDN    ${GREEN}✓${NC} Fastly           ${GREEN}✓${NC} DigitalOcean"
-    echo -e "  ${GREEN}✓${NC} Oracle Cloud     ${GREEN}✓${NC} Alibaba Cloud    ${GREEN}✓${NC} Shodan"
-    echo -e "  ${GREEN}✓${NC} Censys           ${GREEN}✓${NC} VirusTotal"
+    echo -e "${CYAN}Supported Integrations (15 Total):${NC}"
+    echo -e "  ${PURPLE}Cloud Providers (12):${NC}"
+    echo -e "    ${GREEN}✓${NC} Cloudflare       ${GREEN}✓${NC} Akamai Edge      ${GREEN}✓${NC} AWS CloudFront"
+    echo -e "    ${GREEN}✓${NC} Azure Front Door ${GREEN}✓${NC} GCP Cloud CDN    ${GREEN}✓${NC} Fastly"
+    echo -e "    ${GREEN}✓${NC} DigitalOcean     ${GREEN}✓${NC} Oracle Cloud     ${GREEN}✓${NC} Alibaba Cloud"
+    echo -e "    ${GREEN}✓${NC} Imperva          ${GREEN}✓${NC} Sucuri           ${GREEN}✓${NC} Stackpath"
+    echo
+    echo -e "  ${PURPLE}Intelligence Services (3):${NC}"
+    echo -e "    ${GREEN}✓${NC} Shodan           ${GREEN}✓${NC} Censys           ${GREEN}✓${NC} VirusTotal"
     echo
 
     echo -e "${CYAN}Next Steps:${NC}"
-    echo -e "  1. Configure API keys (optional): ${GREEN}./cloudclear-tui-enhanced${NC}"
-    echo -e "  2. Test detection: ${GREEN}./cloudclear example.com${NC}"
-    echo -e "  3. Explore features: ${GREEN}./cloudclear-launch.sh${NC}"
+    echo -e "  ${YELLOW}Local Usage:${NC}"
+    echo -e "    1. Configure API keys (optional): ${GREEN}./cloudclear-tui-enhanced${NC}"
+    echo -e "    2. Test detection: ${GREEN}./cloudclear example.com${NC}"
+    echo -e "    3. Explore features: ${GREEN}./cloudclear-launch.sh${NC}"
+    echo
+    echo -e "  ${YELLOW}Docker Deployment:${NC}"
+    echo -e "    1. Configure .env: ${GREEN}cp .env.example .env && nano .env${NC}"
+    echo -e "    2. Deploy: ${GREEN}docker-compose up -d${NC}"
+    echo -e "    3. Access: ${GREEN}https://scan.yourdomain.com${NC}"
     echo
 
     echo -e "${YELLOW}Documentation:${NC}"
+    echo -e "  • Quick Start:       ${BLUE}QUICKSTART.md${NC}"
+    echo -e "  • Docker Deployment: ${BLUE}DOCKER_DEPLOYMENT.md${NC}"
     echo -e "  • Integration Guide: ${BLUE}docs/CLOUD_INTEGRATION_COMPLETE.md${NC}"
-    echo -e "  • Full Plan: ${BLUE}docs/COMPLETE_CLOUD_INTEGRATION_PLAN.md${NC}"
+    echo -e "  • Full Plan:         ${BLUE}docs/COMPLETE_CLOUD_INTEGRATION_PLAN.md${NC}"
     echo
 
-    print_success "CloudClear is ready to use! 🚀"
+    echo -e "${GREEN}╔════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${GREEN}║                                                                ║${NC}"
+    echo -e "${GREEN}║     CloudClear v2.0-Enhanced-Cloud is ready to use! 🚀        ║${NC}"
+    echo -e "${GREEN}║                                                                ║${NC}"
+    echo -e "${GREEN}╚════════════════════════════════════════════════════════════════╝${NC}"
     echo
 }
 

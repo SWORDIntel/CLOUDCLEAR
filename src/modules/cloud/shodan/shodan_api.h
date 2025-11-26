@@ -13,6 +13,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <time.h>
 
 #define SHODAN_API_BASE "https://api.shodan.io"
 #define SHODAN_MAX_PORTS 100

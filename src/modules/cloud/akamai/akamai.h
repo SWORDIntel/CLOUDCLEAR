@@ -20,6 +20,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <time.h>
 #include <pthread.h>
 #include <curl/curl.h>
 

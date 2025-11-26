@@ -552,12 +552,14 @@ int opsec_health_check_proxy_chain(opsec_context_t *ctx) {
 }
 
 // Get current active proxy
-proxy_node_t *opsec_get_current_proxy(opsec_context_t *ctx) {
+struct proxy_node* opsec_get_current_proxy(const opsec_context_t *ctx) {
     if (!ctx || ctx->config.proxy_chain_length == 0) return NULL;
 
-    pthread_mutex_lock(&ctx->proxy_mutex);
-    proxy_node_t *proxy = &ctx->config.proxy_chain[ctx->current_proxy_index];
-    pthread_mutex_unlock(&ctx->proxy_mutex);
+    // Cast away const for mutex operations - safe since we're just reading
+    opsec_context_t *mutable_ctx = (opsec_context_t *)ctx;
+    pthread_mutex_lock(&mutable_ctx->proxy_mutex);
+    struct proxy_node *proxy = &mutable_ctx->config.proxy_chain[ctx->current_proxy_index];
+    pthread_mutex_unlock(&mutable_ctx->proxy_mutex);
 
     return proxy;
 }

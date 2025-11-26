@@ -8,6 +8,7 @@
 #define CLOUDCLEAR_TUI_CONFIG_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #define CONFIG_FILE_PATH ".cloudclear/config.enc"
 #define MAX_API_KEY_LENGTH 512

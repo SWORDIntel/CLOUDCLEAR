@@ -54,6 +54,17 @@ TUI_ENHANCED_SOURCES = $(TUI_DIR)/cloudunflare_tui_main.c \
                        $(CORE_DIR)/dns_enhanced.c \
                        $(MODULES_DIR)/advanced_ip_detection.c
 
+# TUI with full reconnaissance modules
+TUI_RECON_SOURCES = $(TUI_DIR)/cloudunflare_tui_main.c \
+                    $(TUI_DIR)/cloudclear_tui.c \
+                    $(TUI_DIR)/cloudclear_tui_enhanced.c \
+                    $(TUI_DIR)/cloudclear_tui_enhanced_modules.c \
+                    $(TUI_DIR)/cloudclear_tui_config.c \
+                    $(TUI_DIR)/cloudclear_tui_screens.c \
+                    $(CORE_DIR)/dns_enhanced.c \
+                    $(MODULES_DIR)/advanced_ip_detection.c \
+                    $(RECON_SOURCES)
+
 # Reconnaissance module sources
 RECON_COMMON_DIR = $(MODULES_DIR)/recon/common
 RECON_COMMON_SOURCES = $(RECON_COMMON_DIR)/recon_common.c \
@@ -118,7 +129,7 @@ SSL_EXISTS := $(shell pkg-config --exists openssl && echo yes)
 JSON_EXISTS := $(shell pkg-config --exists json-c && echo yes)
 NCURSES_EXISTS := $(shell pkg-config --exists ncurses && echo yes)
 
-.PHONY: all clean install deps check tui tui-enhanced recon test help structure docker
+.PHONY: all clean install deps check tui tui-enhanced tui-recon recon test help structure docker
 
 all: check $(TARGET)
 
@@ -180,6 +191,35 @@ tui-enhanced: check-tui
 	@echo "  • Font with Unicode support (Nerd Font recommended)"
 	@echo ""
 	@echo "Run with: ./$(TUI_ENHANCED_TARGET)"
+	@echo "========================================="
+
+# TUI with full reconnaissance modules
+TUI_RECON_TARGET = cloudclear-tui-recon
+tui-recon: check-tui
+	@echo "========================================="
+	@echo "Building CloudClear TUI with Recon Modules..."
+	@echo "========================================="
+	$(CC) $(RECON_CFLAGS) -o $(TUI_RECON_TARGET) $(TUI_RECON_SOURCES) $(TUI_LIBS)
+	@echo "✓ TUI Recon Build completed successfully!"
+	@echo ""
+	@echo "Integrated Modules:"
+	@echo "  🔍 CVE-2025 Vulnerability Detector"
+	@echo "  🌐 Advanced Reconnaissance Suite (11 techniques)"
+	@echo "  🔐 Offensive Cryptographic Analysis (DSSSL + PQC)"
+	@echo "  📡 CDN Bypass & Origin IP Discovery"
+	@echo "  🛡️  SSL Certificate Enumeration"
+	@echo "  🌍 IPv6 Range Scanning"
+	@echo "  📧 Email Server Enumeration"
+	@echo "  🔎 Web Application Fingerprinting"
+	@echo ""
+	@echo "Interactive Features:"
+	@echo "  • Module selection menus with checkboxes"
+	@echo "  • Real-time scan progress displays"
+	@echo "  • Live vulnerability detection feed"
+	@echo "  • Color-coded severity indicators"
+	@echo "  • Export results to JSON"
+	@echo ""
+	@echo "Run with: ./$(TUI_RECON_TARGET)"
 	@echo "========================================="
 
 check-tui: check
@@ -251,7 +291,7 @@ test: $(TEST_DIR)/test_enhanced.c $(CORE_DIR)/dns_enhanced.c
 # Clean build artifacts
 clean:
 	@echo "Cleaning build files..."
-	rm -f $(TARGET) $(TUI_TARGET) $(TUI_ENHANCED_TARGET) $(RECON_TARGET)
+	rm -f $(TARGET) $(TUI_TARGET) $(TUI_ENHANCED_TARGET) $(TUI_RECON_TARGET) $(RECON_TARGET)
 	find $(BUILD_DIR) -type f -delete 2>/dev/null || true
 	rm -f $(SRC_DIR)/*/*.o $(SRC_DIR)/*/*/*.o $(SRC_DIR)/*/*/*/*.o
 	@echo "✓ Clean completed"

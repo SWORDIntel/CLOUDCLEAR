@@ -922,6 +922,48 @@ int perform_advanced_reconnaissance(struct recon_session *session, const char *d
             }
             radar_scan_cleanup_context(&radar_ctx);
         }
+
+        // Sub-phase 5.5.1: CVE-2025 Detection
+        if (CVE_2025_DETECTION_ENABLED) {
+            printf("\n--- Sub-phase 5.5.1: CVE-2025 IP Disclosure Detection ---\n");
+            printf("[CVE-2025] Scanning for known 2025 vulnerabilities that expose origin IPs\n");
+            printf("[CVE-2025] Including: CVE-2025-4366 (Pingora Smuggling), WAF Bypass, DNS Leaks\n");
+
+            cve_detection_context_t cve_ctx;
+
+            if (cve_detection_init_context(&cve_ctx) == 0) {
+                // Perform comprehensive CVE-2025 detection
+                int cve_vulns = cve_detection_scan_all_vulns(&cve_ctx, domain);
+
+                if (cve_vulns > 0) {
+                    printf("\n[CRITICAL] CVE-2025 vulnerabilities detected: %d\n", cve_vulns);
+                    cve_detection_print_results(&cve_ctx);
+
+                    // Export CVE detection results
+                    char cve_json_filename[512];
+                    snprintf(cve_json_filename, sizeof(cve_json_filename),
+                            "cve_2025_detection_%s.json", domain);
+                    cve_detection_export_json(&cve_ctx, cve_json_filename);
+                    printf("[CVE-2025] Results exported to %s\n", cve_json_filename);
+
+                    total_results += cve_vulns;
+                } else {
+                    printf("[CVE-2025] No CVE-2025 vulnerabilities detected\n");
+                }
+
+                // Check for IP exposures
+                for (uint32_t i = 0; i < cve_ctx.result_count; i++) {
+                    if (cve_ctx.results[i].ip_exposure_confirmed) {
+                        printf("\n[ALERT] ORIGIN IP EXPOSED: %s\n", cve_ctx.results[i].exposed_origin_ip);
+                        printf("[ALERT] CVE: %s (%s)\n", cve_ctx.results[i].cve_info.cve_id,
+                               cve_ctx.results[i].cve_info.name);
+                        printf("[ALERT] CVSS Score: %.1f\n", cve_ctx.results[i].cve_info.cvss_score);
+                    }
+                }
+
+                cve_detection_cleanup_context(&cve_ctx);
+            }
+        }
     }
 
     printf("\n[RECON] Advanced reconnaissance completed\n");

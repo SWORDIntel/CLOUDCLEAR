@@ -71,6 +71,8 @@ RECON_CLOUDFLARE_RADAR_SOURCES = $(MODULES_DIR)/recon/cloudflare_radar/cloudflar
 RECON_CVE_2025_SOURCES = $(MODULES_DIR)/recon/cve_2025_detector/cve_2025_detector.c
 RECON_ADVANCED_SOURCES = $(MODULES_DIR)/recon/advanced_recon/advanced_recon.c
 RECON_CRYPTO_OFFENSIVE_SOURCES = $(MODULES_DIR)/recon/crypto_offensive/crypto_offensive.c
+                                  $(MODULES_DIR)/recon/cloudflare_radar/cloudflare_radar_parser.c \
+                                  $(MODULES_DIR)/recon/cloudflare_radar/cve_2025_detector.c
 
 # Cloud provider module sources
 CLOUD_DIR = $(MODULES_DIR)/cloud

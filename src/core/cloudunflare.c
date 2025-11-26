@@ -36,13 +36,17 @@
 #include "dns_enhanced.h"
 #include "advanced_ip_detection.h"
 
-#ifdef RECON_MODULES_ENABLED
+// Always include recon common for shared types
 #include "recon/common/recon_common.h"
+#include "recon/common/recon_opsec.h"
+
+#ifdef RECON_MODULES_ENABLED
 #include "recon/dns_zone_transfer/dns_zone_transfer.h"
 #include "recon/dns_bruteforce/dns_bruteforce.h"
 #include "recon/http_banner/http_banner.h"
 #include "recon/port_scanner/port_scanner.h"
 #include "recon/cloudflare_radar/cloudflare_radar.h"
+#include "recon/cve_2025_detector/cve_2025_detector.h"
 #endif
 
 #define VERSION "2.0-Enhanced"
@@ -63,11 +67,7 @@ typedef enum {
     RECON_METHOD_BROWSER_AUTOMATION
 } recon_method_t;
 
-typedef enum {
-    PROXY_TYPE_SOCKS5,
-    PROXY_TYPE_HTTP,
-    PROXY_TYPE_SOCKS4
-} proxy_type_t;
+// proxy_type_t is now defined in recon/common/recon_opsec.h
 
 typedef enum {
     CLEANUP_TEMP_FILE,
@@ -95,12 +95,9 @@ struct user_agent_profile {
     char *accept_language;
 };
 
-struct proxy_node {
-    char address[256];
-    int port;
-    proxy_type_t type;
-    struct proxy_node *next;
-};
+// proxy_node_t is now defined in recon/common/recon_opsec.h
+// Using a simple wrapper for legacy code compatibility
+typedef proxy_node_t local_proxy_node;
 
 struct threat_monitor {
     int consecutive_failures;
@@ -139,7 +136,7 @@ struct cleanup_registry {
 
 struct recon_session {
     struct target_domain *target;
-    struct proxy_node *active_circuit;
+    local_proxy_node *active_circuit;
     struct threat_monitor monitor;
     struct user_agent_profile *current_ua;
     recon_method_t preferred_methods[8];

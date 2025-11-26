@@ -21,6 +21,9 @@
 #ifndef RECON_OPSEC_H
 #define RECON_OPSEC_H
 
+#include <stddef.h>
+#include <time.h>
+#include <sys/types.h>
 #include "recon_common.h"
 #include <sys/random.h>
 #include <sys/syscall.h>

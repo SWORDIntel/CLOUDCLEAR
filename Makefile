@@ -1,8 +1,21 @@
 # Makefile for CloudClear (CloudUnflare Enhanced)
 # Advanced DNS reconnaissance tool with OPSEC capabilities and thread safety
 
-CC = gcc
-CFLAGS = -Wall -Wextra -O3 -std=c11 -D_GNU_SOURCE -pthread -Iinclude
+# Compiler selection - can use standard GCC or DSLLVM
+DSLLVM_PATH ?= /home/user/DSLLVM/build/bin
+DSLLVM_CC = $(DSLLVM_PATH)/clang
+USE_DSLLVM ?= 0
+
+ifeq ($(USE_DSLLVM),1)
+    CC = $(DSLLVM_CC)
+    CFLAGS = -Wall -Wextra -O3 -std=c11 -D_GNU_SOURCE -pthread -Iinclude -Isrc/modules -DUSE_DSLLVM
+    $(info Building with DSLLVM toolchain...)
+else
+    CC = gcc
+    CFLAGS = -Wall -Wextra -O3 -std=c11 -D_GNU_SOURCE -pthread -Iinclude -Isrc/modules
+    $(info Building with standard GCC...)
+endif
+
 THREAD_SAFE_CFLAGS = $(CFLAGS) -DTHREAD_SAFE_BUILD
 RECON_CFLAGS = $(CFLAGS) -DRECON_MODULES_ENABLED
 LIBS = -lcurl -lssl -lcrypto -ljson-c -lpthread -latomic -lresolv
@@ -54,6 +67,10 @@ RECON_HTTP_BANNER_SOURCES = $(MODULES_DIR)/recon/http_banner/http_banner.c
 RECON_PORT_SCANNER_SOURCES = $(MODULES_DIR)/recon/port_scanner/port_scanner.c
 RECON_CLOUDFLARE_RADAR_SOURCES = $(MODULES_DIR)/recon/cloudflare_radar/cloudflare_radar.c \
                                   $(MODULES_DIR)/recon/cloudflare_radar/cloudflare_radar_api.c \
+                                  $(MODULES_DIR)/recon/cloudflare_radar/cloudflare_radar_parser.c
+RECON_CVE_2025_SOURCES = $(MODULES_DIR)/recon/cve_2025_detector/cve_2025_detector.c
+RECON_ADVANCED_SOURCES = $(MODULES_DIR)/recon/advanced_recon/advanced_recon.c
+RECON_CRYPTO_OFFENSIVE_SOURCES = $(MODULES_DIR)/recon/crypto_offensive/crypto_offensive.c
                                   $(MODULES_DIR)/recon/cloudflare_radar/cloudflare_radar_parser.c \
                                   $(MODULES_DIR)/recon/cloudflare_radar/cve_2025_detector.c
 
@@ -82,6 +99,8 @@ CLOUD_SOURCES = $(CLOUD_AKAMAI_SOURCES) $(CLOUD_AWS_SOURCES) $(CLOUD_AZURE_SOURC
 RECON_SOURCES = $(RECON_COMMON_SOURCES) $(RECON_DNS_ZONE_SOURCES) \
                 $(RECON_DNS_BRUTE_SOURCES) $(RECON_HTTP_BANNER_SOURCES) \
                 $(RECON_PORT_SCANNER_SOURCES) $(RECON_CLOUDFLARE_RADAR_SOURCES) \
+                $(RECON_CVE_2025_SOURCES) $(RECON_ADVANCED_SOURCES) \
+                $(RECON_CRYPTO_OFFENSIVE_SOURCES) \
                 $(CLOUD_SOURCES)
 
 # Combined sources for full build

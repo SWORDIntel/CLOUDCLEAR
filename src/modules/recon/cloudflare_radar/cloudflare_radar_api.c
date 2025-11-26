@@ -20,7 +20,7 @@ typedef struct {
 } curl_response_buffer_t;
 
 // Callback function for CURL to write response data
-static size_t curl_write_callback(void *contents, size_t size, size_t nmemb, void *userp) {
+static size_t radar_curl_write_callback(void *contents, size_t size, size_t nmemb, void *userp) {
     size_t realsize = size * nmemb;
     curl_response_buffer_t *mem = (curl_response_buffer_t *)userp;
 
@@ -73,7 +73,7 @@ int radar_scan_api_request(const char *domain, radar_scan_type_t scan_type,
     // Configure CURL options
     curl_easy_setopt(curl, CURLOPT_URL, api_url);
     curl_easy_setopt(curl, CURLOPT_TIMEOUT, CLOUDFLARE_RADAR_API_TIMEOUT);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curl_write_callback);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, radar_curl_write_callback);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&response);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, "CloudUnflare-Enhanced/2.0");
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);

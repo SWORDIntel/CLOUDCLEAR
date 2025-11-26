@@ -25,6 +25,7 @@
 #include <curl/curl.h>
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
+#include <openssl/x509v3.h>
 
 // Module feature flags
 #define FEATURE_SSL_CERT_ENUM 1

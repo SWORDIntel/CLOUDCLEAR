@@ -54,8 +54,13 @@ int radar_scan_init_context(radar_scan_context_t *ctx) {
     ctx->config.extract_technology_stack = true;
     ctx->config.analyze_security_posture = true;
     ctx->config.follow_redirects = true;
-    // Note: opsec.enabled field doesn't exist in current struct definition
-    ctx->config.opsec.paranoia_level = OPSEC_PARANOIA_NORMAL;
+
+    // Configure OPSEC settings
+    ctx->config.opsec.min_delay_ms = 1000;
+    ctx->config.opsec.max_delay_ms = 3000;
+    ctx->config.opsec.jitter_ms = 500;
+    ctx->config.opsec.randomize_user_agents = true;
+    ctx->config.opsec.use_proxy_rotation = false;
 
     return 0;
 }
@@ -455,7 +460,7 @@ int radar_scan_export_csv(const radar_scan_context_t *ctx, const char *filename)
  * Apply timing evasion according to OPSEC config
  */
 void radar_scan_apply_timing_evasion(const recon_opsec_config_t *opsec) {
-    if (!opsec || !opsec->enabled) {
+    if (!opsec) {
         return;
     }
 

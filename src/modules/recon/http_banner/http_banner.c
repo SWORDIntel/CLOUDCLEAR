@@ -684,3 +684,55 @@ ssl_version_t http_banner_detect_ssl_version(SSL *ssl) {
         default: return SSL_VERSION_UNKNOWN;
     }
 }
+// Stub implementations for missing functions
+
+int http_banner_extract_cert_info(X509 *cert, ssl_cert_info_t *cert_info) {
+    if (!cert || !cert_info) return -1;
+    
+    // Extract basic cert info
+    X509_NAME *subj = X509_get_subject_name(cert);
+    if (subj) {
+        X509_NAME_oneline(subj, cert_info->subject, sizeof(cert_info->subject) - 1);
+    }
+    
+    X509_NAME *issuer = X509_get_issuer_name(cert);
+    if (issuer) {
+        X509_NAME_oneline(issuer, cert_info->issuer, sizeof(cert_info->issuer) - 1);
+    }
+    
+    return 0;
+}
+
+int http_banner_analyze_security_headers(const http_response_t *response, char security_headers[][256], uint32_t *header_count) {
+    if (!response || !security_headers || !header_count) return -1;
+    
+    *header_count = 0;
+    
+    // Analyze common security headers
+    if (strstr(response->headers, "Strict-Transport-Security")) {
+        snprintf(security_headers[(*header_count)++], 256, "HSTS: Enabled");
+    }
+    if (strstr(response->headers, "Content-Security-Policy")) {
+        snprintf(security_headers[(*header_count)++], 256, "CSP: Enabled");
+    }
+    if (strstr(response->headers, "X-Frame-Options")) {
+        snprintf(security_headers[(*header_count)++], 256, "X-Frame-Options: Enabled");
+    }
+    
+    return 0;
+}
+
+int http_banner_detect_technologies(const http_response_t *response, technology_detection_t *technologies, uint32_t *tech_count) {
+    if (!response || !technologies || !tech_count) return -1;
+    
+    *tech_count = 0;
+    
+    // Simple technology detection based on headers
+    if (strstr(response->headers, "X-Powered-By")) {
+        *tech_count = 1;
+        strncpy(technologies[0].technology, "Unknown", sizeof(technologies[0].technology) - 1);
+        strncpy(technologies[0].version, "Unknown", sizeof(technologies[0].version) - 1);
+    }
+    
+    return 0;
+}

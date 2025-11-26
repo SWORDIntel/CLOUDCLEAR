@@ -832,3 +832,26 @@ double opsec_calculate_evasion_success_rate(const opsec_context_t *ctx) {
 
     return (double)ctx->successful_evasions / total_evasions;
 }
+
+// Stub implementations for missing OPSEC functions
+
+int opsec_analyze_response_anomalies(const char *response, size_t size, double *anomaly_score) {
+    (void)response;
+    (void)size;
+    if (anomaly_score) *anomaly_score = 0.0;
+    return 0; // No anomalies detected (stub)
+}
+
+bool opsec_detect_geo_blocking(const char *response_data, size_t response_size) {
+    (void)response_data;
+    (void)response_size;
+    return false; // No geo-blocking detected (stub)
+}
+
+int opsec_fragment_request(const uint8_t *data, size_t data_size, uint8_t **fragments, uint32_t *fragment_count) {
+    (void)data;
+    (void)data_size;
+    (void)fragments;
+    (void)fragment_count;
+    return -1; // Not implemented (stub)
+}

@@ -957,9 +957,9 @@ void* tui_advanced_recon_thread(void *arg) {
     // Email Server Enumeration
     if (state->recon_module_selection & RECON_MODULE_EMAIL_ENUM) {
         email_enum_result_t email_result;
-        if (email_enumerate_servers(state->base.target_domain, &email_result) == 0) {
+        if (email_enumerate_mx_records(state->base.target_domain, &email_result) == 0) {
             pthread_mutex_lock(&g_enhanced_mutex);
-            state->recon_findings_count += email_result.mx_record_count;
+            state->recon_findings_count += email_result.mx_count;
             pthread_mutex_unlock(&g_enhanced_mutex);
         }
         usleep(300000);

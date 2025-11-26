@@ -605,3 +605,24 @@ void advanced_recon_print_summary(const advanced_recon_context_t *ctx) {
     if (ctx->enable_historical_dns) printf("  [✓] Historical DNS Records\n");
     printf("\n");
 }
+
+// Export results to JSON
+int advanced_recon_export_results(const advanced_recon_context_t *ctx, const char *filename) {
+    if (!ctx || !filename) return -1;
+    
+    FILE *fp = fopen(filename, "w");
+    if (!fp) return -1;
+    
+    fprintf(fp, "{\n");
+    fprintf(fp, "  \"total_findings\": %u,\n", ctx->total_findings);
+    fprintf(fp, "  \"modules_enabled\": {\n");
+    fprintf(fp, "    \"ssl_cert\": %s,\n", ctx->enable_ssl_cert_enum ? "true" : "false");
+    fprintf(fp, "    \"ipv6\": %s,\n", ctx->enable_ipv6_scan ? "true" : "false");
+    fprintf(fp, "    \"web_fingerprint\": %s,\n", ctx->enable_web_fingerprint ? "true" : "false");
+    fprintf(fp, "    \"email_enum\": %s\n", ctx->enable_email_enum ? "true" : "false");
+    fprintf(fp, "  }\n");
+    fprintf(fp, "}\n");
+    
+    fclose(fp);
+    return 0;
+}

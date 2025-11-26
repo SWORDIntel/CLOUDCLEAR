@@ -34,7 +34,7 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-#include "../../config.h"
+#include "config.h"
 
 // Maximum limits for reconnaissance operations
 #define RECON_MAX_TARGETS 1000

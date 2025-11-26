@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="description" content="CloudClear - Advanced Cloud Provider Detection & Intelligence">
+    <meta name="theme-color" content="#0a0e1a">
+    <title>CloudClear - Cloud Provider Detection</title>
+    <link rel="stylesheet" href="/css/tempest-class-c.css">
+    <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg">
+</head>
+<body class="tempest-class-c">
+    <!-- TEMPEST Class C Security Banner -->
+    <div class="security-banner">
+        <span class="classification">TEMPEST CLASS C</span>
+        <span class="separator">|</span>
+        <span class="system-name">CLOUDCLEAR v2.0</span>
+        <span class="separator">|</span>
+        <span class="status-indicator" id="systemStatus">
+            <span class="pulse"></span>
+            OPERATIONAL
+        </span>
+    </div>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo-section">
+                <div class="logo-icon">
+                    <svg viewBox="0 0 24 24" width="32" height="32">
+                        <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"
+                              fill="none" stroke="currentColor" stroke-width="2"/>
+                        <path d="M9 12l2 2 4-4" fill="none" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="title">CLOUDCLEAR</h1>
+                    <p class="subtitle">Advanced Cloud Provider Detection & Intelligence Platform</p>
+                </div>
+            </div>
+            <div class="header-stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="providersConfigured">0</div>
+                    <div class="stat-label">Providers</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="activeScans">0</div>
+                    <div class="stat-label">Active Scans</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Scanner Section -->
+        <section class="scanner-section">
+            <div class="scanner-card">
+                <h2 class="section-title">
+                    <svg class="icon" viewBox="0 0 24 24" width="20" height="20">
+                        <circle cx="11" cy="11" r="8" fill="none" stroke="currentColor" stroke-width="2"/>
+                        <path d="M21 21l-4.35-4.35" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    TARGET ANALYSIS
+                </h2>
+                <form id="scanForm" class="scan-form">
+                    <div class="input-group">
+                        <input type="text"
+                               id="domainInput"
+                               class="domain-input"
+                               placeholder="Enter target domain (e.g., example.com)"
+                               pattern="[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?(\.[a-zA-Z]{2,})+"
+                               required>
+                        <button type="submit" class="scan-button" id="scanButton">
+                            <span class="button-text">INITIATE SCAN</span>
+                            <svg class="button-icon" viewBox="0 0 24 24" width="20" height="20">
+                                <path d="M5 12h14M12 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- Progress Section -->
+        <section class="progress-section" id="progressSection" style="display: none;">
+            <div class="progress-card">
+                <div class="progress-header">
+                    <h3 class="progress-title">Scanning: <span id="scanTarget">-</span></h3>
+                    <span class="progress-status" id="scanStatus">INITIALIZING</span>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progressBar" style="width: 0%">
+                        <div class="progress-shine"></div>
+                    </div>
+                </div>
+                <div class="progress-details" id="progressDetails">
+                    Initiating cloud provider detection...
+                </div>
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <section class="results-section" id="resultsSection" style="display: none;">
+            <h2 class="section-title">
+                <svg class="icon" viewBox="0 0 24 24" width="20" height="20">
+                    <path d="M9 11l3 3L22 4" fill="none" stroke="currentColor" stroke-width="2"/>
+                    <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11" fill="none" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                DETECTION RESULTS
+            </h2>
+            <div id="resultsContainer" class="results-container">
+                <!-- Results will be populated here -->
+            </div>
+        </section>
+
+        <!-- Integrations Panel -->
+        <section class="integrations-section">
+            <h2 class="section-title">
+                <svg class="icon" viewBox="0 0 24 24" width="20" height="20">
+                    <rect x="3" y="3" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/>
+                    <rect x="14" y="3" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/>
+                    <rect x="14" y="14" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/>
+                    <rect x="3" y="14" width="7" height="7" fill="none" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                ACTIVE INTEGRATIONS
+            </h2>
+            <div class="integrations-grid" id="integrationsGrid">
+                <!-- Integration cards will be populated here -->
+            </div>
+        </section>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <p>&copy; 2025 SWORD Intelligence | CloudClear v2.0-Enhanced-Cloud</p>
+            </div>
+            <div class="footer-section">
+                <span class="footer-link" onclick="showDocs()">Documentation</span>
+                <span class="separator">|</span>
+                <span class="footer-link" onclick="showAbout()">About</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>

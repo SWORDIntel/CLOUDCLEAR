@@ -3,7 +3,6 @@
  * Interactive terminal interface for advanced IP detection
  */
 
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -219,6 +218,7 @@ void tui_format_confidence(float confidence, char *buffer, size_t buffer_size) {
 void tui_draw_candidate_list(WINDOW *win, struct origin_ip_candidate *candidates, int count, int selected) {
     int max_y, max_x;
     getmaxyx(win, max_y, max_x);
+    (void)max_x; // Suppress unused warning
 
     int y = 2;
     int display_count = max_y - 4;  // Leave room for border and instructions
@@ -340,10 +340,12 @@ void tui_center_text(WINDOW *win, int y, const char *text, int color_pair) {
 
 // Show welcome screen
 void tui_show_welcome_screen(struct tui_state *state) {
+    (void)state; // Unused parameter
     clear();
 
     int max_y, max_x;
     getmaxyx(stdscr, max_y, max_x);
+    (void)max_x; // Suppress unused warning
 
     // Draw logo
     draw_logo(stdscr, 2);
@@ -396,7 +398,7 @@ int tui_get_string_input(WINDOW *win, int y, int x, char *buffer, int max_len) {
     echo();
     curs_set(1);
 
-    mvwprintw(win, y, x, "");
+    wmove(win, y, x);
     wrefresh(win);
 
     int ch;
@@ -564,7 +566,7 @@ void tui_show_results_screen(struct tui_state *state) {
 
     // Header
     WINDOW *win_header = newwin(3, max_x, 0, 0);
-    char subtitle[128];
+    char subtitle[300]; // Increased to accommodate domain name + text
     snprintf(subtitle, sizeof(subtitle), "%s | %d candidates found",
              state->target_domain,
              state->detection_result ? state->detection_result->candidate_count : 0);
@@ -708,6 +710,7 @@ void tui_show_candidate_detail(struct tui_state *state, int candidate_index) {
 
 // Show help screen
 void tui_show_help_screen(struct tui_state *state) {
+    (void)state; // Unused parameter
     clear();
 
     int max_y, max_x;
@@ -788,7 +791,6 @@ int tui_handle_key_results_screen(struct tui_state *state, int key) {
 
         case '\n':
         case KEY_ENTER:
-        case 10:
             if (candidate_count > 0) {
                 tui_show_candidate_detail(state, state->selected_candidate);
             }

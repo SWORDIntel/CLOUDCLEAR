@@ -3,7 +3,6 @@
  * Integrates all advanced IP detection with a real-time TUI
  */
 
-#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -24,7 +24,7 @@
 #define DNS_BRUTEFORCE_ENHANCED_H
 
 #include "../common/recon_common.h"
-#include "../../dns_enhanced.h"
+#include "dns_enhanced.h"
 #include "dns_bruteforce.h"
 
 // Enhanced brute-force constants

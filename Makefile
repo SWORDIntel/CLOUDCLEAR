@@ -28,12 +28,16 @@ CORE_SOURCES = $(CORE_DIR)/cloudunflare.c \
 
 TUI_SOURCES = $(TUI_DIR)/cloudunflare_tui_main.c \
               $(TUI_DIR)/cloudclear_tui.c \
+              $(TUI_DIR)/cloudclear_tui_config.c \
+              $(TUI_DIR)/cloudclear_tui_screens.c \
               $(CORE_DIR)/dns_enhanced.c \
               $(MODULES_DIR)/advanced_ip_detection.c
 
 TUI_ENHANCED_SOURCES = $(TUI_DIR)/cloudunflare_tui_main.c \
                        $(TUI_DIR)/cloudclear_tui.c \
                        $(TUI_DIR)/cloudclear_tui_enhanced.c \
+                       $(TUI_DIR)/cloudclear_tui_config.c \
+                       $(TUI_DIR)/cloudclear_tui_screens.c \
                        $(CORE_DIR)/dns_enhanced.c \
                        $(MODULES_DIR)/advanced_ip_detection.c
 
@@ -53,10 +57,32 @@ RECON_CLOUDFLARE_RADAR_SOURCES = $(MODULES_DIR)/recon/cloudflare_radar/cloudflar
                                   $(MODULES_DIR)/recon/cloudflare_radar/cloudflare_radar_parser.c \
                                   $(MODULES_DIR)/recon/cloudflare_radar/cve_2025_detector.c
 
+# Cloud provider module sources
+CLOUD_DIR = $(MODULES_DIR)/cloud
+CLOUD_AKAMAI_SOURCES = $(CLOUD_DIR)/akamai/akamai.c
+CLOUD_AWS_SOURCES = $(CLOUD_DIR)/aws/aws.c
+CLOUD_AZURE_SOURCES = $(CLOUD_DIR)/azure/azure.c
+CLOUD_GCP_SOURCES = $(CLOUD_DIR)/gcp/gcp.c
+CLOUD_FASTLY_SOURCES = $(CLOUD_DIR)/fastly/fastly.c
+CLOUD_DIGITALOCEAN_SOURCES = $(CLOUD_DIR)/digitalocean/digitalocean.c
+CLOUD_ORACLE_SOURCES = $(CLOUD_DIR)/oracle/oracle.c
+CLOUD_ALIBABA_SOURCES = $(CLOUD_DIR)/alibaba/alibaba.c
+CLOUD_SHODAN_SOURCES = $(CLOUD_DIR)/shodan/shodan_api.c
+CLOUD_CENSYS_SOURCES = $(CLOUD_DIR)/censys/censys_api.c
+CLOUD_VIRUSTOTAL_SOURCES = $(CLOUD_DIR)/virustotal/virustotal_api.c
+CLOUD_DETECTOR_SOURCES = $(CLOUD_DIR)/cloud_detector.c
+
+# All cloud module sources
+CLOUD_SOURCES = $(CLOUD_AKAMAI_SOURCES) $(CLOUD_AWS_SOURCES) $(CLOUD_AZURE_SOURCES) \
+                $(CLOUD_GCP_SOURCES) $(CLOUD_FASTLY_SOURCES) $(CLOUD_DIGITALOCEAN_SOURCES) \
+                $(CLOUD_ORACLE_SOURCES) $(CLOUD_ALIBABA_SOURCES) $(CLOUD_SHODAN_SOURCES) \
+                $(CLOUD_CENSYS_SOURCES) $(CLOUD_VIRUSTOTAL_SOURCES) $(CLOUD_DETECTOR_SOURCES)
+
 # All reconnaissance sources
 RECON_SOURCES = $(RECON_COMMON_SOURCES) $(RECON_DNS_ZONE_SOURCES) \
                 $(RECON_DNS_BRUTE_SOURCES) $(RECON_HTTP_BANNER_SOURCES) \
-                $(RECON_PORT_SCANNER_SOURCES) $(RECON_CLOUDFLARE_RADAR_SOURCES)
+                $(RECON_PORT_SCANNER_SOURCES) $(RECON_CLOUDFLARE_RADAR_SOURCES) \
+                $(CLOUD_SOURCES)
 
 # Combined sources for full build
 SOURCES = $(CORE_SOURCES) $(RECON_SOURCES)
@@ -207,7 +233,7 @@ test: $(TEST_DIR)/test_enhanced.c $(CORE_DIR)/dns_enhanced.c
 clean:
 	@echo "Cleaning build files..."
 	rm -f $(TARGET) $(TUI_TARGET) $(TUI_ENHANCED_TARGET) $(RECON_TARGET)
-	rm -f $(BUILD_DIR)/*
+	find $(BUILD_DIR) -type f -delete 2>/dev/null || true
 	rm -f $(SRC_DIR)/*/*.o $(SRC_DIR)/*/*/*.o $(SRC_DIR)/*/*/*/*.o
 	@echo "✓ Clean completed"
 
@@ -268,3 +294,39 @@ help:
 	@echo ""
 	@echo "See docs/QUICKSTART.md for more information"
 	@echo "========================================="
+
+# Test build targets (skip dependency check for testing compilation)
+test-standard:
+	@echo "========================================="
+	@echo "TEST BUILD: Standard (skipping dep check)"
+	@echo "========================================="
+	$(CC) $(CFLAGS) -o $(TARGET) $(SOURCES) $(LIBS) 2>&1 | head -100
+
+test-tui:
+	@echo "========================================="
+	@echo "TEST BUILD: TUI (skipping dep check)"
+	@echo "========================================="
+	$(CC) $(CFLAGS) -o $(TUI_TARGET) $(TUI_SOURCES) $(TUI_LIBS) 2>&1 | head -100
+
+test-tui-enhanced:
+	@echo "========================================="
+	@echo "TEST BUILD: TUI Enhanced (skipping dep check)"
+	@echo "========================================="
+	$(CC) $(CFLAGS) -o $(TUI_ENHANCED_TARGET) $(TUI_ENHANCED_SOURCES) $(TUI_LIBS) 2>&1 | head -100
+
+test-recon:
+	@echo "========================================="
+	@echo "TEST BUILD: Recon (skipping dep check)"
+	@echo "========================================="
+	$(CC) $(RECON_CFLAGS) -o $(RECON_TARGET) $(SOURCES) $(LIBS) 2>&1 | head -100
+
+test-all-builds:
+	@echo "Testing all build modes..."
+	@echo ""
+	@make test-standard || true
+	@echo ""
+	@make test-tui || true
+	@echo ""
+	@make test-tui-enhanced || true
+	@echo ""
+	@make test-recon || true

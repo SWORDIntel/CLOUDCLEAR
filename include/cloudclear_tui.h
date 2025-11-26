@@ -25,10 +25,14 @@
 typedef enum {
     SCREEN_WELCOME,
     SCREEN_INPUT,
+    SCREEN_SETTINGS,
+    SCREEN_API_CONFIG,
+    SCREEN_CLOUD_STATUS,
     SCREEN_SCANNING,
     SCREEN_RESULTS,
     SCREEN_CANDIDATE_DETAIL,
     SCREEN_HELP,
+    SCREEN_ABOUT,
     SCREEN_EXIT
 } tui_screen_t;
 
@@ -88,6 +92,11 @@ struct tui_state {
     bool show_help;
     bool show_details;
     int selected_menu_item;
+    int settings_menu_item;
+    int api_config_item;
+
+    // Configuration
+    void *api_config; // tui_api_config_t pointer
 };
 
 // TUI Functions
@@ -99,10 +108,14 @@ void tui_cleanup(void);
 // Screen management
 void tui_show_welcome_screen(struct tui_state *state);
 void tui_show_input_screen(struct tui_state *state);
+void tui_show_settings_screen(struct tui_state *state);
+void tui_show_api_config_screen(struct tui_state *state);
+void tui_show_cloud_status_screen(struct tui_state *state);
 void tui_show_scanning_screen(struct tui_state *state);
 void tui_show_results_screen(struct tui_state *state);
 void tui_show_candidate_detail(struct tui_state *state, int candidate_index);
 void tui_show_help_screen(struct tui_state *state);
+void tui_show_about_screen(struct tui_state *state);
 
 // Drawing functions
 void tui_draw_header(WINDOW *win, const char *title, const char *subtitle);

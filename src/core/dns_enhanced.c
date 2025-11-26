@@ -216,6 +216,7 @@ int add_resolver_to_chain(struct dns_resolver_chain *chain,
 // Intelligent resolver selection based on performance metrics (thread-safe)
 struct dns_resolver* select_optimal_resolver(struct dns_resolver_chain *chain,
                                            dns_record_type_t query_type) {
+    (void)query_type; // Reserved for future query-type-specific optimization
     if (!chain || chain->resolver_count == 0) return NULL;
 
     pthread_mutex_lock(&chain->chain_mutex);
@@ -400,7 +401,7 @@ int perform_enhanced_dns_query(struct dns_query_context *query,
     if (!query || !chain || !result) return -1;
 
     memset(result, 0, sizeof(struct enhanced_dns_result));
-    strncpy(result->domain, query->query_name, sizeof(result->domain) - 1);
+    snprintf(result->domain, sizeof(result->domain), "%s", query->query_name);
 
     struct timespec start_time, end_time;
     clock_gettime(CLOCK_MONOTONIC, &start_time);
@@ -413,6 +414,7 @@ int perform_enhanced_dns_query(struct dns_query_context *query,
     }
 
     strncpy(result->resolver_used, resolver->address, sizeof(result->resolver_used) - 1);
+    result->resolver_used[sizeof(result->resolver_used) - 1] = '\0';
     result->protocol_used = resolver->protocol;
 
     // Perform dual-stack resolution

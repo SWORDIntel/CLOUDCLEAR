@@ -68,3 +68,46 @@ vendor/
 # OS specific
 Thumbs.db
 .Trash-*
+
+# Windows specific
+*.exe
+*.dll
+*.pdb
+*.ilk
+*.obj
+*.lib
+*.exp
+*.manifest
+*.res
+*.sdf
+*.opensdf
+*.VC.db
+*.VC.opendb
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+bld/
+[Bb]in/
+[Oo]bj/
+out/
+
+# CMake
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+_deps/
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# vcpkg
+vcpkg_installed/

@@ -929,11 +929,11 @@ int perform_advanced_reconnaissance(struct recon_session *session, const char *d
                 // Perform comprehensive CVE-2025 detection
                 // Scan target for vulnerabilities (technology/version unknown, so pass NULL)
                 cve_detection_scan_target(&cve_ctx, domain, NULL, NULL);
-                
+
                 // Also check for specific vulnerability types
                 cve_detection_check_cdn_origin_leak(&cve_ctx, domain, NULL);
                 cve_detection_check_dns_vulnerabilities(&cve_ctx, domain);
-                
+
                 // Get vulnerability count
                 uint32_t cve_vulns = cve_detection_get_vulnerability_count(&cve_ctx);
 

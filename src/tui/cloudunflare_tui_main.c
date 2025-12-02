@@ -149,7 +149,7 @@ void* scan_thread_func(void *arg) {
 int main_tui_mode(void) {
     // Initialize mutex for thread safety (required on Windows)
     ensure_mutex_initialized();
-    
+
     int result = tui_init();
     if (result != 0) {
         fprintf(stderr, "Failed to initialize TUI\n");

@@ -688,18 +688,18 @@ ssl_version_t http_banner_detect_ssl_version(SSL *ssl) {
 
 int http_banner_extract_cert_info(X509 *cert, ssl_cert_info_t *cert_info) {
     if (!cert || !cert_info) return -1;
-    
+
     // Extract basic cert info
     X509_NAME *subj = X509_get_subject_name(cert);
     if (subj) {
         X509_NAME_oneline(subj, cert_info->subject, sizeof(cert_info->subject) - 1);
     }
-    
+
     X509_NAME *issuer = X509_get_issuer_name(cert);
     if (issuer) {
         X509_NAME_oneline(issuer, cert_info->issuer, sizeof(cert_info->issuer) - 1);
     }
-    
+
     return 0;
 }
 

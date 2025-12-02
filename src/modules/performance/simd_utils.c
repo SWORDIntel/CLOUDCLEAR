@@ -64,11 +64,11 @@ bool simd_init(void) {
 
 #ifdef _WIN32
     int cpuInfo[4];
-    
+
     // Check for AVX2 support (leaf 7, subleaf 0)
     __cpuidex(cpuInfo, 7, 0);
     g_has_avx2 = (cpuInfo[1] & (1 << 5)) != 0;  // EBX bit 5 = AVX2
-    
+
     // Check for AES and PCLMUL (leaf 1)
     __cpuid(cpuInfo, 1);
     g_has_fma = (cpuInfo[2] & (1 << 12)) != 0;    // ECX bit 12 = FMA

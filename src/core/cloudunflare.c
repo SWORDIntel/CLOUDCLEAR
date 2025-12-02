@@ -944,13 +944,17 @@ int perform_advanced_reconnaissance(struct recon_session *session, const char *d
                     printf("[CVE-2025] No CVE-2025 vulnerabilities detected\n");
                 }
 
-                // Check for IP exposures
+                // Check for vulnerabilities that could expose origin IPs
                 for (uint32_t i = 0; i < cve_ctx.result_count; i++) {
-                    if (cve_ctx.results[i].ip_exposure_confirmed) {
-                        printf("\n[ALERT] ORIGIN IP EXPOSED: %s\n", cve_ctx.results[i].exposed_origin_ip);
-                        printf("[ALERT] CVE: %s (%s)\n", cve_ctx.results[i].cve_info.cve_id,
-                               cve_ctx.results[i].cve_info.name);
-                        printf("[ALERT] CVSS Score: %.1f\n", cve_ctx.results[i].cve_info.cvss_score);
+                    if (cve_ctx.results[i].vulnerable && cve_ctx.results[i].cve.affects_cdn_bypass) {
+                        printf("\n[ALERT] CDN BYPASS VULNERABILITY FOUND!\n");
+                        printf("[ALERT] CVE: %s (%s)\n", cve_ctx.results[i].cve.cve_id,
+                               cve_ctx.results[i].cve.name);
+                        printf("[ALERT] CVSS Score: %.1f\n", cve_ctx.results[i].cve.cvss_score);
+                        printf("[ALERT] Confidence: %.0f%%\n", cve_ctx.results[i].confidence * 100);
+                        if (cve_ctx.results[i].evidence[0]) {
+                            printf("[ALERT] Evidence: %s\n", cve_ctx.results[i].evidence);
+                        }
                     }
                 }
 

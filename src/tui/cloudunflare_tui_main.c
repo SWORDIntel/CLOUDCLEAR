@@ -13,7 +13,16 @@
 
 // Global state for callbacks
 static struct tui_state *g_scan_state = NULL;
-static pthread_mutex_t g_tui_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t g_tui_mutex;
+static int g_tui_mutex_initialized = 0;
+
+// Initialize mutex if not already done (call at start of main or before first use)
+static void ensure_mutex_initialized(void) {
+    if (!g_tui_mutex_initialized) {
+        pthread_mutex_init(&g_tui_mutex, NULL);
+        g_tui_mutex_initialized = 1;
+    }
+}
 
 // Scan thread function
 void* scan_thread_func(void *arg) {
@@ -138,6 +147,9 @@ void* scan_thread_func(void *arg) {
 
 // TUI mode main
 int main_tui_mode(void) {
+    // Initialize mutex for thread safety (required on Windows)
+    ensure_mutex_initialized();
+    
     int result = tui_init();
     if (result != 0) {
         fprintf(stderr, "Failed to initialize TUI\n");

@@ -25,7 +25,6 @@
 #include <openssl/x509.h>
 #include <openssl/x509v3.h>
 #include <openssl/bn.h>
-#include <pthread.h>
 #include "advanced_ip_detection.h"
 
 // HTTP response callback

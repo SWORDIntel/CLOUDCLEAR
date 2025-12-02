@@ -22,8 +22,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <time.h>
-#include <pthread.h>
 #include <curl/curl.h>
+#include "platform_compat.h"
 
 // Akamai configuration constants
 #define AKAMAI_MAX_PROPERTIES 100

@@ -14,7 +14,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <pthread.h>
+#include "platform_compat.h"
 #include <time.h>
 
 #define AZURE_MAX_HEADERS 30

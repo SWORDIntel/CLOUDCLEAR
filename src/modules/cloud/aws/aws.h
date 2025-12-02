@@ -20,8 +20,8 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <pthread.h>
 #include <time.h>
+#include "platform_compat.h"
 
 // AWS configuration constants
 #define AWS_MAX_DISTRIBUTIONS 50

@@ -598,17 +598,25 @@ void opsec_execute_emergency_cleanup(opsec_context_t *ctx) {
 void opsec_generate_secure_random(uint8_t *buffer, size_t size) {
     if (!buffer || size == 0) return;
 
+#ifdef _WIN32
+    // Windows: Use CryptGenRandom via getrandom() wrapper in platform_compat.h
+    if (getrandom(buffer, size, 0) == (ssize_t)size) {
+        return;
+    }
+#else
     // Try getrandom() first (Linux 3.17+)
     if (syscall(SYS_getrandom, buffer, size, 0) == (ssize_t)size) {
         return;
     }
+#endif
 
     // Fallback to OpenSSL
-    if (RAND_bytes(buffer, size) == 1) {
+    if (RAND_bytes(buffer, (int)size) == 1) {
         return;
     }
 
-    // Final fallback to /dev/urandom
+#ifndef _WIN32
+    // Final fallback to /dev/urandom (POSIX only)
     int fd = open("/dev/urandom", O_RDONLY);
     if (fd >= 0) {
         ssize_t bytes_read = read(fd, buffer, size);
@@ -617,11 +625,12 @@ void opsec_generate_secure_random(uint8_t *buffer, size_t size) {
             return;
         }
     }
+#endif
 
     // Emergency fallback - not cryptographically secure
-    srand(time(NULL));
+    srand((unsigned int)time(NULL));
     for (size_t i = 0; i < size; i++) {
-        buffer[i] = rand() % 256;
+        buffer[i] = (uint8_t)(rand() % 256);
     }
 }
 

@@ -705,16 +705,16 @@ double waf_calculate_bypass_success_rate(const waf_evasion_context_t *ctx) {
 void waf_generate_random_bytes(uint8_t *buffer, size_t size) {
     if (!buffer || size == 0) return;
 
-    // Try to use getrandom() if available
+    // Try to use getrandom() if available (cross-platform via platform_compat.h)
     ssize_t result = getrandom(buffer, size, 0);
     if (result == (ssize_t)size) {
         return;
     }
 
     // Fallback to rand()
-    srand(time(NULL));
+    srand((unsigned int)time(NULL));
     for (size_t i = 0; i < size; i++) {
-        buffer[i] = rand() % 256;
+        buffer[i] = (uint8_t)(rand() % 256);
     }
 }
 

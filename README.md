@@ -23,7 +23,7 @@
 - ✅ Creates launch scripts
 - ✅ Guides you through setup
 
-**See [QUICKSTART.md](QUICKSTART.md) for detailed instructions.**
+**See [QUICKSTART.md](docs/QUICKSTART.md) for detailed instructions.**
 
 ---
 
@@ -50,7 +50,7 @@ Features:
 - 📊 Integration status dashboard
 - 🔐 Secure API key management
 
-**See [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) for complete guide.**
+**See [DOCKER_DEPLOYMENT.md](docs/DOCKER_DEPLOYMENT.md) for complete guide.**
 
 ---
 
@@ -101,10 +101,24 @@ HTTP Header Analysis • DNS/CNAME Resolution • SSL/TLS Certificates • IP Ra
 
 ## 📚 Documentation
 
-- **[Quick Start Guide](QUICKSTART.md)** - Get started in 5 minutes
-- **[Docker Deployment Guide](DOCKER_DEPLOYMENT.md)** - Complete Docker setup and deployment
-- **[Complete Integration Guide](docs/CLOUD_INTEGRATION_COMPLETE.md)** - Full documentation for all providers
-- **[Integration Plan](docs/COMPLETE_CLOUD_INTEGRATION_PLAN.md)** - Technical implementation details
+### Getting Started
+- **[Quick Start Guide](docs/QUICKSTART.md)** - Get started in 5 minutes
+- **[Installation Guide](docs/INSTALLATION_COMPLETE.txt)** - Complete installation documentation
+
+### Deployment
+- **[Docker Deployment](docs/DOCKER_DEPLOYMENT.md)** - Complete Docker setup
+- **[Simple API](docs/SIMPLE_API.md)** - Lightweight localhost JSON endpoint
+- **[Web UI Deployment](docs/WEB_UI_DEPLOYMENT.md)** - Web interface setup
+
+### Platform Support
+- **[Windows Build Guide](docs/WINDOWS_BUILD.md)** - Building on Windows
+- **[Platform Support](docs/PLATFORM_SUPPORT.md)** - Cross-platform compatibility
+- **[Root Structure](docs/ROOT_STRUCTURE.md)** - Project organization
+
+### Features
+- **[CDN Bypass Features](docs/CDN_BYPASS_FEATURES.md)** - Advanced detection capabilities
+- **[Crypto Offensive](docs/DSSSL_CRYPTO_OFFENSIVE.md)** - Cryptographic analysis
+- **[Complete Integration Guide](docs/CLOUD_INTEGRATION_COMPLETE.md)** - All providers
 
 ---
 

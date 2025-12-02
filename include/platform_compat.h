@@ -165,7 +165,7 @@
         #define CLOCK_MONOTONIC 1
         #define CLOCK_REALTIME 0
 
-        /* timespec is already defined in MSVC 2015+ (ucrt/time.h) 
+        /* timespec is already defined in MSVC 2015+ (ucrt/time.h)
          * Only define if not already defined by the system */
         #if !defined(_TIMESPEC_DEFINED) && !defined(__struct_timespec_defined) && (_MSC_VER < 1900)
             #define _TIMESPEC_DEFINED
@@ -320,6 +320,16 @@
     /* setsockopt compatibility - Windows uses char* for optval */
     #define SETSOCKOPT_OPTVAL_TYPE const char*
 
+    /* Socket timeout helper - Windows uses DWORD milliseconds, not timeval */
+    static inline int set_socket_timeout_ms(SOCKET sock, int timeout_ms) {
+        DWORD tv = (DWORD)timeout_ms;
+        int ret = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof(tv));
+        if (ret == 0) {
+            ret = setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof(tv));
+        }
+        return ret;
+    }
+
     /* ========================================================================
      * Path and signal handling
      * ======================================================================== */
@@ -359,6 +369,18 @@
 
     /* setsockopt uses void* on POSIX */
     #define SETSOCKOPT_OPTVAL_TYPE const void*
+
+    /* Socket timeout helper - POSIX uses timeval */
+    static inline int set_socket_timeout_ms(int sock, int timeout_ms) {
+        struct timeval tv;
+        tv.tv_sec = timeout_ms / 1000;
+        tv.tv_usec = (timeout_ms % 1000) * 1000;
+        int ret = setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
+        if (ret == 0) {
+            ret = setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof(tv));
+        }
+        return ret;
+    }
 
     /* Path separator */
     #define PATH_SEPARATOR "/"

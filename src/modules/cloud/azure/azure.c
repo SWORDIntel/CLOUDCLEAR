@@ -2,6 +2,7 @@
  * CloudClear - Azure Integration Implementation
  */
 
+#include "platform_compat.h"
 #include "azure.h"
 #include <string.h>
 #include <stdlib.h>

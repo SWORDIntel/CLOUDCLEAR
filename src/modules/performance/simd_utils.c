@@ -22,8 +22,15 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <immintrin.h>
-#include <cpuid.h>
+
+#ifdef _WIN32
+    #include <intrin.h>
+    #define cpuid(info, x)    __cpuidex(info, x, 0)
+#else
+    #include <immintrin.h>
+    #include <cpuid.h>
+#endif
+
 #include "../config.h"
 
 // SIMD feature detection
@@ -55,6 +62,19 @@ bool simd_init(void) {
         return true;
     }
 
+#ifdef _WIN32
+    int cpuInfo[4];
+    
+    // Check for AVX2 support (leaf 7, subleaf 0)
+    __cpuidex(cpuInfo, 7, 0);
+    g_has_avx2 = (cpuInfo[1] & (1 << 5)) != 0;  // EBX bit 5 = AVX2
+    
+    // Check for AES and PCLMUL (leaf 1)
+    __cpuid(cpuInfo, 1);
+    g_has_fma = (cpuInfo[2] & (1 << 12)) != 0;    // ECX bit 12 = FMA
+    g_has_aes = (cpuInfo[2] & (1 << 25)) != 0;    // ECX bit 25 = AES-NI
+    g_has_pclmul = (cpuInfo[2] & (1 << 1)) != 0;  // ECX bit 1 = PCLMULQDQ
+#else
     unsigned int eax, ebx, ecx, edx;
 
     // Check for AVX2 support
@@ -68,6 +88,7 @@ bool simd_init(void) {
         g_has_aes = (ecx & (1 << 25)) != 0;    // AES-NI
         g_has_pclmul = (ecx & (1 << 1)) != 0;  // PCLMULQDQ
     }
+#endif
 
     g_simd_initialized = true;
 
@@ -82,7 +103,21 @@ bool simd_init(void) {
 
 // Aligned memory allocation for SIMD operations
 void* simd_aligned_alloc(size_t size) {
-    return aligned_alloc(SIMD_ALIGNMENT, (size + SIMD_ALIGNMENT - 1) & ~(SIMD_ALIGNMENT - 1));
+    size_t aligned_size = (size + SIMD_ALIGNMENT - 1) & ~(SIMD_ALIGNMENT - 1);
+#ifdef _WIN32
+    return _aligned_malloc(aligned_size, SIMD_ALIGNMENT);
+#else
+    return aligned_alloc(SIMD_ALIGNMENT, aligned_size);
+#endif
+}
+
+// Aligned memory free for SIMD operations
+void simd_aligned_free(void *ptr) {
+#ifdef _WIN32
+    _aligned_free(ptr);
+#else
+    free(ptr);
+#endif
 }
 
 // AVX2 optimized string length calculation

@@ -2,6 +2,7 @@
  * CloudClear - AWS Integration Implementation
  */
 
+#include "platform_compat.h"
 #include "aws.h"
 #include <string.h>
 #include <stdlib.h>

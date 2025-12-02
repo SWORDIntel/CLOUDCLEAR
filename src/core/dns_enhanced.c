@@ -9,10 +9,7 @@
 #include "config.h"
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <arpa/inet.h>
+#include "platform_compat.h"
 #include <curl/curl.h>
 #include <json-c/json.h>
 #include <math.h>

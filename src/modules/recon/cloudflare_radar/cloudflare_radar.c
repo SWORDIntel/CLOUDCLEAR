@@ -6,12 +6,11 @@
 
 #include "cloudflare_radar.h"
 #include "../common/recon_common.h"
+#include "platform_compat.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
 #include <time.h>
-#include <unistd.h>
 
 /*
  * Initialize Cloudflare Radar scan context

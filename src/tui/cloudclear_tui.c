@@ -7,8 +7,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <ncurses.h>
-#include <unistd.h>
+#include "platform_compat.h"
+#ifdef _WIN32
+    #include <curses.h>  /* PDCurses on Windows */
+#else
+    #include <ncurses.h>
+#endif
 #include "cloudclear_tui.h"
 
 // Global TUI state

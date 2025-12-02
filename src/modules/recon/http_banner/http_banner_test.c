@@ -7,7 +7,10 @@
  */
 
 #include "http_banner.h"
-#include <sys/time.h>
+#include "platform_compat.h"
+#ifndef _WIN32
+    #include <sys/time.h>
+#endif
 
 // Test configuration structure
 typedef struct {

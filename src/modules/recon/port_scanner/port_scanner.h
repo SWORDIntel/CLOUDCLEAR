@@ -22,12 +22,15 @@
 #define PORT_SCANNER_H
 
 #include "../common/recon_common.h"
-#include <sys/socket.h>
-#include <netinet/tcp.h>
-#include <netinet/udp.h>
-#include <netinet/ip.h>
-#include <netinet/ip_icmp.h>
-#include <linux/if_packet.h>
+#include "platform_compat.h"
+
+#ifndef _WIN32
+    #include <netinet/tcp.h>
+    #include <netinet/udp.h>
+    #include <netinet/ip.h>
+    #include <netinet/ip_icmp.h>
+    #include <linux/if_packet.h>
+#endif
 #include <net/ethernet.h>
 
 // Port scanner specific constants

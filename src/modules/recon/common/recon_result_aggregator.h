@@ -14,9 +14,8 @@
 
 #include "recon_module_interface.h"
 #include "dns_enhanced.h"
+#include "platform_compat.h"
 #include <sqlite3.h>
-#include <pthread.h>
-#include <stdatomic.h>
 
 // Result correlation types
 typedef enum {

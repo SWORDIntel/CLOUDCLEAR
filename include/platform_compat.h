@@ -6,9 +6,20 @@
 #ifndef PLATFORM_COMPAT_H
 #define PLATFORM_COMPAT_H
 
+/* Standard headers needed for type definitions */
+#include <stdint.h>
+#include <stddef.h>
+#include <stdbool.h>
+#include <time.h>
+
 #ifdef _WIN32
     /* Windows-specific headers and definitions */
-    #define WIN32_LEAN_AND_MEAN
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN
+    #endif
+    #ifndef _WINSOCK_DEPRECATED_NO_WARNINGS
+        #define _WINSOCK_DEPRECATED_NO_WARNINGS
+    #endif
     #include <windows.h>
     #include <winsock2.h>
     #include <ws2tcpip.h>
@@ -17,6 +28,18 @@
     #include <fcntl.h>
     #include <direct.h>
     #include <string.h>  /* strings.h functions are in string.h on Windows */
+    #include <sys/types.h>  /* For some type definitions */
+    
+    /* _Atomic keyword compatibility for MSVC */
+    /* MSVC doesn't support C11 _Atomic, use volatile instead */
+    #ifndef _Atomic
+        #define _Atomic volatile
+    #endif
+    
+    /* _Thread_local compatibility for MSVC */
+    #ifndef _Thread_local
+        #define _Thread_local __declspec(thread)
+    #endif
 
     /* netdb.h compatibility - functions available via ws2tcpip.h */
     /* getaddrinfo, getnameinfo, etc. are available */
@@ -148,8 +171,11 @@
     }
 
     /* Signal handling - limited on Windows */
-    #define SIGPIPE 13
-    #define SIG_IGN ((void (*)(int))1)
+    #include <signal.h>
+    #ifndef SIGPIPE
+        #define SIGPIPE 13
+    #endif
+    /* SIG_IGN is defined in signal.h on Windows, don't redefine */
 
 #else
     /* POSIX systems (Linux, macOS, BSD) */
@@ -184,46 +210,22 @@
 
 /* Atomic operations compatibility */
 #ifdef _WIN32
-    /* Windows: MSVC doesn't support C11 _Atomic keyword well */
-    /* Use volatile types with Interlocked functions for thread-safe operations */
-    #ifndef _Atomic
-        #ifdef __cplusplus
-            /* C++ mode - use template or avoid */
-            #define _Atomic(type) type
-        #else
-            /* C mode - use volatile for MSVC compatibility */
-            #define _Atomic(type) volatile type
-        #endif
-    #endif
-
-    /* Atomic operation wrappers for Windows */
-    static inline uint32_t atomic_fetch_add_u32(volatile uint32_t *ptr, uint32_t val) {
-        return (uint32_t)InterlockedExchangeAdd((LONG volatile*)ptr, (LONG)val);
-    }
-    static inline uint64_t atomic_fetch_add_u64(volatile uint64_t *ptr, uint64_t val) {
-        return (uint64_t)InterlockedExchangeAdd64((LONGLONG volatile*)ptr, (LONGLONG)val);
-    }
-    static inline uint32_t atomic_load_u32(volatile uint32_t *ptr) {
-        return (uint32_t)InterlockedOr((LONG volatile*)ptr, 0);
-    }
-    static inline uint64_t atomic_load_u64(volatile uint64_t *ptr) {
-        return (uint64_t)InterlockedOr64((LONGLONG volatile*)ptr, 0);
-    }
+    /* Atomic operation wrappers for Windows using Interlocked functions */
+    #define ATOMIC_FETCH_ADD_32(ptr, val) InterlockedExchangeAdd((LONG volatile*)(ptr), (LONG)(val))
+    #define ATOMIC_FETCH_ADD_64(ptr, val) InterlockedExchangeAdd64((LONGLONG volatile*)(ptr), (LONGLONG)(val))
+    #define ATOMIC_LOAD_32(ptr) InterlockedOr((LONG volatile*)(ptr), 0)
+    #define ATOMIC_LOAD_64(ptr) InterlockedOr64((LONGLONG volatile*)(ptr), 0)
+    #define ATOMIC_STORE_32(ptr, val) InterlockedExchange((LONG volatile*)(ptr), (LONG)(val))
+    #define ATOMIC_STORE_64(ptr, val) InterlockedExchange64((LONGLONG volatile*)(ptr), (LONGLONG)(val))
 #else
     /* POSIX: Use standard C11 atomic operations */
     #include <stdatomic.h>
-    static inline uint32_t atomic_fetch_add_u32(_Atomic(uint32_t) *ptr, uint32_t val) {
-        return atomic_fetch_add(ptr, val);
-    }
-    static inline uint64_t atomic_fetch_add_u64(_Atomic(uint64_t) *ptr, uint64_t val) {
-        return atomic_fetch_add(ptr, val);
-    }
-    static inline uint32_t atomic_load_u32(_Atomic(uint32_t) *ptr) {
-        return atomic_load(ptr);
-    }
-    static inline uint64_t atomic_load_u64(_Atomic(uint64_t) *ptr) {
-        return atomic_load(ptr);
-    }
+    #define ATOMIC_FETCH_ADD_32(ptr, val) atomic_fetch_add(ptr, val)
+    #define ATOMIC_FETCH_ADD_64(ptr, val) atomic_fetch_add(ptr, val)
+    #define ATOMIC_LOAD_32(ptr) atomic_load(ptr)
+    #define ATOMIC_LOAD_64(ptr) atomic_load(ptr)
+    #define ATOMIC_STORE_32(ptr, val) atomic_store(ptr, val)
+    #define ATOMIC_STORE_64(ptr, val) atomic_store(ptr, val)
 #endif
 
 #endif /* PLATFORM_COMPAT_H */

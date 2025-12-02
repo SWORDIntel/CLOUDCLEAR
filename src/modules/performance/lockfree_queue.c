@@ -23,10 +23,8 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <stdatomic.h>
-#include <pthread.h>
 #include <time.h>
-#include <unistd.h>
+#include "platform_compat.h"
 #include "../config.h"
 
 // Cache line size for optimal performance

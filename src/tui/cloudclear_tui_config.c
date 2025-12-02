@@ -3,11 +3,11 @@
  */
 
 #include "cloudclear_tui_config.h"
+#include "platform_compat.h"
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <errno.h>
 
 // Initialize configuration with defaults

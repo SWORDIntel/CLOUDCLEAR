@@ -24,14 +24,13 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <stdatomic.h>
-#include <pthread.h>
 #include <time.h>
-#include <unistd.h>
-#include <sys/sysinfo.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 #include <errno.h>
+#include "platform_compat.h"
+#include <sys/stat.h>
+#ifndef _WIN32
+    #include <sys/sysinfo.h>
+#endif
 #include "../config.h"
 
 // Performance monitoring constants

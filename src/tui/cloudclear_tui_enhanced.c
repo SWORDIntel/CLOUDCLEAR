@@ -10,10 +10,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <ncurses.h>
-#include <unistd.h>
+#include "platform_compat.h"
 #include <wchar.h>
 #include <locale.h>
+#ifdef _WIN32
+    #include <curses.h>  /* PDCurses on Windows */
+#else
+    #include <ncurses.h>
+#endif
 #include "cloudclear_tui.h"
 
 // Enhanced color pairs with more vibrant scheme

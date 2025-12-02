@@ -9,11 +9,9 @@
  */
 
 #include "recon_opsec.h"
+#include "platform_compat.h"
 #include <math.h>
 #include <sys/stat.h>
-#include <fcntl.h>
-#include <signal.h>
-#include <unistd.h>
 #include <errno.h>
 
 // User-Agent rotation pool for traffic obfuscation

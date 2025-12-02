@@ -12,10 +12,10 @@
 
 #include "cve_2025_detector.h"
 #include "../common/recon_common.h"
+#include "platform_compat.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <pthread.h>
 #include <time.h>
 #include <curl/curl.h>
 

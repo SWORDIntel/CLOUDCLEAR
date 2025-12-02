@@ -8,11 +8,8 @@
 #ifndef DNS_ENHANCED_H
 #define DNS_ENHANCED_H
 
-#include <stdio.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <time.h>
 #include "platform_compat.h"
+#include <stdio.h>
 
 // DNS protocol support
 typedef enum {

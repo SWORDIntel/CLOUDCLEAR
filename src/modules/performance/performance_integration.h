@@ -23,8 +23,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <stdatomic.h>
-#include <pthread.h>
+#include "platform_compat.h"
 #include "../config.h"
 
 #ifdef __cplusplus

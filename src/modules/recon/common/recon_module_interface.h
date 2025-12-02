@@ -15,8 +15,7 @@
 #include "recon_common.h"
 #include "recon_opsec.h"
 #include "../dns_enhanced.h"
-#include <pthread.h>
-#include <stdatomic.h>
+#include "platform_compat.h"
 
 // Module identification and versioning
 #define RECON_MODULE_API_VERSION "1.0"

@@ -13,11 +13,12 @@
  */
 
 #include "dns_bruteforce_enhanced.h"
-#include <sys/time.h>
-#include <fcntl.h>
-#include <unistd.h>
+#include "platform_compat.h"
 #include <math.h>
-#include <regex.h>
+#ifndef _WIN32
+    #include <sys/time.h>
+    #include <regex.h>
+#endif
 
 // Global configuration defaults
 enhanced_opsec_config_t default_opsec_config = {

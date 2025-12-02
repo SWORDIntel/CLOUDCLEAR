@@ -18,11 +18,8 @@
 #ifndef ADVANCED_IP_DETECTION_H
 #define ADVANCED_IP_DETECTION_H
 
+#include "platform_compat.h"
 #include <stdio.h>
-#include <stdint.h>
-#include <stdbool.h>
-#include <time.h>
-#include <netinet/in.h>
 #include <pthread.h>
 #include <stdatomic.h>
 #include "dns_enhanced.h"

@@ -8,16 +8,14 @@
 #include "dns_zone_transfer.h"
 #include "platform_compat.h"
 #include <errno.h>
-#include <sys/time.h>
-#ifdef _WIN32
-    /* arpa/nameser.h and resolv.h compatibility provided by platform_compat.h */
-#else
-    #include <arpa/nameser.h>
-    #include <resolv.h>
-#endif
 #include <time.h>
 #include <string.h>
 #include <stdlib.h>
+#ifndef _WIN32
+    #include <sys/time.h>
+    #include <arpa/nameser.h>
+    #include <resolv.h>
+#endif
 
 // Initialize zone transfer context
 int zone_transfer_init_context(zone_transfer_context_t *ctx) {

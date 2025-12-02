@@ -7,9 +7,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
-#include <unistd.h>
-#include <ncurses.h>
+#include "platform_compat.h"
+#ifdef _WIN32
+    #include <curses.h>  /* PDCurses on Windows */
+#else
+    #include <ncurses.h>
+#endif
 #include "cloudclear_tui_enhanced_modules.h"
 
 // Global enhanced state for callbacks

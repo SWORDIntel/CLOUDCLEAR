@@ -22,11 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include <signal.h>
 #include "platform_compat.h"
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
 #include <curl/curl.h>
 #include <openssl/rand.h>
 #include <json-c/json.h>

@@ -17,7 +17,7 @@
 
 #include "dns_zone_transfer.h"
 #include "../common/recon_opsec.h"
-#include <sys/random.h>
+#include "platform_compat.h"
 #include <errno.h>
 
 // Enhanced zone transfer context with OPSEC integration

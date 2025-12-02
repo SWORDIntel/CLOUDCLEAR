@@ -21,7 +21,7 @@
 #include "../common/recon_common.h"
 #include <stddef.h>
 #include <time.h>
-#include <sys/types.h>
+#include "platform_compat.h"
 
 // CVE database version
 #define CVE_2025_DB_VERSION "2025.01"

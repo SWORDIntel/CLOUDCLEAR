@@ -27,15 +27,8 @@
 #include <stdbool.h>
 #include <string.h>
 #include <time.h>
-#include <sys/types.h>
-#include <unistd.h>
 #include <ctype.h>
-#include <pthread.h>
-#include <stdatomic.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
+#include "platform_compat.h"
 #include "config.h"
 
 // Maximum limits for reconnaissance operations

@@ -23,10 +23,8 @@
 
 #include <stddef.h>
 #include <time.h>
-#include <sys/types.h>
 #include "recon_common.h"
-#include <sys/random.h>
-#include <sys/syscall.h>
+#include "platform_compat.h"
 #include <openssl/rand.h>
 
 // OPSEC paranoia levels

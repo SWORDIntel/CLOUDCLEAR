@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <ctype.h>
-#include <sys/random.h>
+#include "platform_compat.h"
 
 // WAF signature database
 static const char *cloudflare_signatures[] = {

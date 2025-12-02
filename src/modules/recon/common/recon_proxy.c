@@ -9,10 +9,7 @@
  */
 
 #include "recon_opsec.h"
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netdb.h>
+#include "platform_compat.h"
 #include <fcntl.h>
 
 // SOCKS5 protocol constants

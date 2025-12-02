@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
+#include "platform_compat.h"
 #include <ctype.h>
 
 // Initialize CVE detection context

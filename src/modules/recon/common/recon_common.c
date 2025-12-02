@@ -7,8 +7,7 @@
 
 #include "recon_common.h"
 #include <errno.h>
-#include <sys/time.h>
-#include <fcntl.h>
+#include "platform_compat.h"
 
 // Initialize reconnaissance context
 int recon_init_context(recon_context_t *ctx, recon_mode_t mode) {

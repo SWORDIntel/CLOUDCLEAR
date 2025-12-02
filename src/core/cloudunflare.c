@@ -21,12 +21,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <time.h>
 #include <signal.h>
-#include <pthread.h>
-#include <sys/mman.h>
-#include <sys/socket.h>
+#include "platform_compat.h"
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>

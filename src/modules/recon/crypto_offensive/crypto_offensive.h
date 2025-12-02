@@ -174,10 +174,17 @@ typedef struct {
     uint32_t max_results;
 
     // Statistics
+#ifdef _WIN32
+    volatile uint32_t dsssl_targets_found;
+    volatile uint32_t pqc_targets_found;
+    volatile uint32_t vulnerable_targets;
+    volatile uint32_t pinned_targets;
+#else
     _Atomic uint32_t dsssl_targets_found;
     _Atomic uint32_t pqc_targets_found;
     _Atomic uint32_t vulnerable_targets;
     _Atomic uint32_t pinned_targets;
+#endif
 
     pthread_mutex_t results_mutex;
 } crypto_offensive_context_t;

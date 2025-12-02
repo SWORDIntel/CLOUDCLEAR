@@ -9,8 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
-#include <netdb.h>
-#include <arpa/inet.h>
+#include "platform_compat.h"
 
 // Akamai header signatures
 static const char *akamai_header_signatures[] = {

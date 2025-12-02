@@ -8,11 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
-#include <unistd.h>
-#include <netdb.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
+#include "platform_compat.h"
 
 // ============================================================================
 // SSL CERTIFICATE ENUMERATION
@@ -609,10 +605,10 @@ void advanced_recon_print_summary(const advanced_recon_context_t *ctx) {
 // Export results to JSON
 int advanced_recon_export_results(const advanced_recon_context_t *ctx, const char *filename) {
     if (!ctx || !filename) return -1;
-    
+
     FILE *fp = fopen(filename, "w");
     if (!fp) return -1;
-    
+
     fprintf(fp, "{\n");
     fprintf(fp, "  \"total_findings\": %u,\n", ctx->total_findings);
     fprintf(fp, "  \"modules_enabled\": {\n");
@@ -622,7 +618,7 @@ int advanced_recon_export_results(const advanced_recon_context_t *ctx, const cha
     fprintf(fp, "    \"email_enum\": %s\n", ctx->enable_email_enum ? "true" : "false");
     fprintf(fp, "  }\n");
     fprintf(fp, "}\n");
-    
+
     fclose(fp);
     return 0;
 }

@@ -86,10 +86,17 @@ typedef struct {
 // Thread-safe reconnaissance context
 typedef struct {
     pthread_mutex_t mutex;
+#ifdef _WIN32
+    volatile uint32_t active_threads;
+    volatile uint32_t completed_scans;
+    volatile uint32_t failed_scans;
+    volatile uint64_t total_response_time;
+#else
     _Atomic uint32_t active_threads;
     _Atomic uint32_t completed_scans;
     _Atomic uint32_t failed_scans;
     _Atomic uint64_t total_response_time;
+#endif
     recon_mode_t scan_mode;
     uint32_t max_threads;
     uint32_t timeout_seconds;

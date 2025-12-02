@@ -8,12 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
-#include <unistd.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
+#include "platform_compat.h"
 
 // Initialize crypto offensive context
 int crypto_offensive_init(crypto_offensive_context_t *ctx) {
@@ -595,17 +590,17 @@ void crypto_print_summary(const crypto_offensive_context_t *ctx) {
 // Export results to JSON
 int crypto_export_results_json(const crypto_offensive_context_t *ctx, const char *filename) {
     if (!ctx || !filename) return -1;
-    
+
     FILE *fp = fopen(filename, "w");
     if (!fp) return -1;
-    
+
     fprintf(fp, "{\n");
     fprintf(fp, "  \"dsssl_targets\": %u,\n", atomic_load(&ctx->dsssl_targets_found));
     fprintf(fp, "  \"pqc_targets\": %u,\n", atomic_load(&ctx->pqc_targets_found));
     fprintf(fp, "  \"vulnerable_targets\": %u,\n", atomic_load(&ctx->vulnerable_targets));
     fprintf(fp, "  \"total_scanned\": %u\n", ctx->result_count);
     fprintf(fp, "}\n");
-    
+
     fclose(fp);
     return 0;
 }

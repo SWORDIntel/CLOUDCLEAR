@@ -12,9 +12,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <time.h>
-#include <netinet/in.h>
-#include <pthread.h>
-#include <stdatomic.h>
+#include "platform_compat.h"
 
 // DNS protocol support
 typedef enum {

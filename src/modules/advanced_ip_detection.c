@@ -6,14 +6,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
 #include <time.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <arpa/nameser.h>
-#include <resolv.h>
-#include <netdb.h>
+#include "platform_compat.h"
+#ifdef _WIN32
+    /* arpa/nameser.h compatibility provided by platform_compat.h */
+#else
+    #include <arpa/nameser.h>
+    #include <resolv.h>
+#endif
 #include <curl/curl.h>
 
 // NI_NAMEFQDN is BSD-specific, not available on all Linux systems

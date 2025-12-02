@@ -23,14 +23,19 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <stdatomic.h>
-#include <pthread.h>
-#include <sched.h>
-#include <unistd.h>
-#include <errno.h>
-#include <sys/sysinfo.h>
 #include <time.h>
-#include <numa.h>
+#include <errno.h>
+#include "platform_compat.h"
+#ifdef _WIN32
+    /* NUMA not available on Windows - use fallback */
+    #define numa_available() (-1)
+    #define numa_node_of_cpu(cpu) (0)
+    #define numa_run_on_node(node) (0)
+    #define sysconf(name) (0)
+#else
+    #include <sys/sysinfo.h>
+    #include <numa.h>
+#endif
 #include "../config.h"
 
 // Intel Meteor Lake architecture constants

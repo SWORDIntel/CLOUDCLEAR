@@ -16,6 +16,34 @@
     #include <io.h>
     #include <fcntl.h>
     #include <direct.h>
+    #include <string.h>  /* strings.h functions are in string.h on Windows */
+
+    /* netdb.h compatibility - functions available via ws2tcpip.h */
+    /* getaddrinfo, getnameinfo, etc. are available */
+
+    /* arpa/nameser.h compatibility - DNS message structures */
+    /* Windows doesn't have this, define minimal compatibility */
+    #ifndef _ARPA_NAMESER_H
+        #define _ARPA_NAMESER_H
+        #define NS_PACKETSZ 512
+        #define NS_MAXDNAME 1025
+        #define NS_MAXMSG 65535
+        typedef struct {
+            unsigned short id;
+            unsigned short flags;
+            unsigned short qdcount;
+            unsigned short ancount;
+            unsigned short nscount;
+            unsigned short arcount;
+        } HEADER;
+    #endif
+
+    /* resolv.h compatibility - minimal definitions */
+    #ifndef _RESOLV_H
+        #define _RESOLV_H
+        #define RES_INIT 0x0001
+        #define RES_DEBUG 0x0002
+    #endif
 
     /* Ensure INET6_ADDRSTRLEN is defined (available in ws2tcpip.h on modern Windows) */
     #ifndef INET6_ADDRSTRLEN
@@ -27,7 +55,10 @@
     typedef unsigned int uid_t;
     typedef unsigned int gid_t;
     typedef long ssize_t;
-    typedef long long off_t;
+    /* off_t is already defined in Windows sys/types.h, don't redefine */
+    #ifndef _OFF_T_DEFINED
+        typedef long long off_t;
+    #endif
 
     /* sys/random.h compatibility - use Windows Cryptography API */
     #include <wincrypt.h>
@@ -50,9 +81,25 @@
     #define usleep(x) Sleep((x) / 1000)
     #define strcasecmp _stricmp
     #define strncasecmp _strnicmp
-    #define snprintf _snprintf
+    /* snprintf exists in modern Windows (VS 2015+), only define if needed */
+    #if _MSC_VER < 1900
+        #define snprintf _snprintf
+    #endif
     #define getpid _getpid
     #define mkdir(path, mode) _mkdir(path)
+
+    /* strcasestr - case-insensitive string search */
+    static inline char* strcasestr(const char *haystack, const char *needle) {
+        if (!haystack || !needle) return NULL;
+        size_t needle_len = strlen(needle);
+        if (needle_len == 0) return (char*)haystack;
+        for (const char *p = haystack; *p; p++) {
+            if (_strnicmp(p, needle, needle_len) == 0) {
+                return (char*)p;
+            }
+        }
+        return NULL;
+    }
 
     /* Thread compatibility */
     typedef HANDLE pthread_t;
@@ -137,12 +184,46 @@
 
 /* Atomic operations compatibility */
 #ifdef _WIN32
-    #define atomic_fetch_add(ptr, val) InterlockedExchangeAdd((LONG volatile*)(ptr), (val))
-    #define atomic_load(ptr) InterlockedOr((LONG volatile*)(ptr), 0)
+    /* Windows: MSVC doesn't support C11 _Atomic keyword well */
+    /* Use volatile types with Interlocked functions for thread-safe operations */
+    #ifndef _Atomic
+        #ifdef __cplusplus
+            /* C++ mode - use template or avoid */
+            #define _Atomic(type) type
+        #else
+            /* C mode - use volatile for MSVC compatibility */
+            #define _Atomic(type) volatile type
+        #endif
+    #endif
+
+    /* Atomic operation wrappers for Windows */
+    static inline uint32_t atomic_fetch_add_u32(volatile uint32_t *ptr, uint32_t val) {
+        return (uint32_t)InterlockedExchangeAdd((LONG volatile*)ptr, (LONG)val);
+    }
+    static inline uint64_t atomic_fetch_add_u64(volatile uint64_t *ptr, uint64_t val) {
+        return (uint64_t)InterlockedExchangeAdd64((LONGLONG volatile*)ptr, (LONGLONG)val);
+    }
+    static inline uint32_t atomic_load_u32(volatile uint32_t *ptr) {
+        return (uint32_t)InterlockedOr((LONG volatile*)ptr, 0);
+    }
+    static inline uint64_t atomic_load_u64(volatile uint64_t *ptr) {
+        return (uint64_t)InterlockedOr64((LONGLONG volatile*)ptr, 0);
+    }
 #else
+    /* POSIX: Use standard C11 atomic operations */
     #include <stdatomic.h>
-    #define atomic_fetch_add(ptr, val) __atomic_fetch_add(ptr, val, __ATOMIC_SEQ_CST)
-    #define atomic_load(ptr) __atomic_load_n(ptr, __ATOMIC_SEQ_CST)
+    static inline uint32_t atomic_fetch_add_u32(_Atomic(uint32_t) *ptr, uint32_t val) {
+        return atomic_fetch_add(ptr, val);
+    }
+    static inline uint64_t atomic_fetch_add_u64(_Atomic(uint64_t) *ptr, uint64_t val) {
+        return atomic_fetch_add(ptr, val);
+    }
+    static inline uint32_t atomic_load_u32(_Atomic(uint32_t) *ptr) {
+        return atomic_load(ptr);
+    }
+    static inline uint64_t atomic_load_u64(_Atomic(uint64_t) *ptr) {
+        return atomic_load(ptr);
+    }
 #endif
 
 #endif /* PLATFORM_COMPAT_H */

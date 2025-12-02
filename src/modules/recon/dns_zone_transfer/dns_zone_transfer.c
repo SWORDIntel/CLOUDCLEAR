@@ -6,15 +6,15 @@
  */
 
 #include "dns_zone_transfer.h"
-#include <sys/socket.h>
-#include <netdb.h>
-#include <arpa/nameser.h>
-#include <resolv.h>
+#include "platform_compat.h"
 #include <errno.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <unistd.h>
 #include <sys/time.h>
+#ifdef _WIN32
+    /* arpa/nameser.h and resolv.h compatibility provided by platform_compat.h */
+#else
+    #include <arpa/nameser.h>
+    #include <resolv.h>
+#endif
 #include <time.h>
 #include <string.h>
 #include <stdlib.h>

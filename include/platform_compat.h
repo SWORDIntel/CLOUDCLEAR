@@ -16,19 +16,19 @@
     #include <io.h>
     #include <fcntl.h>
     #include <direct.h>
-    
+
     /* Ensure INET6_ADDRSTRLEN is defined (available in ws2tcpip.h on modern Windows) */
     #ifndef INET6_ADDRSTRLEN
         #define INET6_ADDRSTRLEN 46
     #endif
-    
+
     /* sys/types.h compatibility */
     typedef int pid_t;
     typedef unsigned int uid_t;
     typedef unsigned int gid_t;
     typedef long ssize_t;
     typedef long long off_t;
-    
+
     /* sys/random.h compatibility - use Windows Cryptography API */
     #include <wincrypt.h>
     static inline ssize_t getrandom(void *buf, size_t buflen, unsigned int flags) {

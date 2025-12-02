@@ -29,13 +29,13 @@
     #include <direct.h>
     #include <string.h>  /* strings.h functions are in string.h on Windows */
     #include <sys/types.h>  /* For some type definitions */
-    
+
     /* _Atomic keyword compatibility for MSVC */
     /* MSVC doesn't support C11 _Atomic, use volatile instead */
     #ifndef _Atomic
         #define _Atomic volatile
     #endif
-    
+
     /* _Thread_local compatibility for MSVC */
     #ifndef _Thread_local
         #define _Thread_local __declspec(thread)

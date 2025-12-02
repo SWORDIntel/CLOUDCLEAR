@@ -1,0 +1,24 @@
+[run]
+omit =
+    */test_*.py
+    */tests/*
+    */__pycache__/*
+    */site-packages/*
+
+[report]
+exclude_lines =
+    # Standard pragma
+    pragma: no cover
+
+    # Don't complain about main block
+    if __name__ == .__main__.:
+
+    # Don't complain about debug code
+    def __repr__
+
+    # Don't complain if tests don't hit defensive assertion code
+    raise AssertionError
+    raise NotImplementedError
+
+    # Don't complain about abstract methods
+    @abstractmethod

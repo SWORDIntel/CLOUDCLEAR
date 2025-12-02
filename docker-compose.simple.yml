@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  cloudclear-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.simple
+    container_name: cloudclear-simple-api
+    restart: unless-stopped
+
+    # Bind to localhost ONLY (127.0.0.1)
+    ports:
+      - "127.0.0.1:5000:5000"
+
+    environment:
+      # API Configuration
+      - API_PORT=5000
+      - API_HOST=0.0.0.0
+      - SCAN_TIMEOUT=300
+      - CLOUDCLEAR_BIN=/app/cloudclear
+
+      # Cloud Provider API Keys (optional)
+      - CLOUDFLARE_API_KEY=${CLOUDFLARE_API_KEY:-}
+      - AKAMAI_CLIENT_TOKEN=${AKAMAI_CLIENT_TOKEN:-}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID:-}
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID:-}
+      - FASTLY_API_KEY=${FASTLY_API_KEY:-}
+      - SHODAN_API_KEY=${SHODAN_API_KEY:-}
+      - CENSYS_API_ID=${CENSYS_API_ID:-}
+      - VIRUSTOTAL_API_KEY=${VIRUSTOTAL_API_KEY:-}
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    networks:
+      - cloudclear-net
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+networks:
+  cloudclear-net:
+    driver: bridge

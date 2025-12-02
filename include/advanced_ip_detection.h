@@ -20,8 +20,6 @@
 
 #include "platform_compat.h"
 #include <stdio.h>
-#include <pthread.h>
-#include <stdatomic.h>
 #include "dns_enhanced.h"
 
 // SSL Certificate Information

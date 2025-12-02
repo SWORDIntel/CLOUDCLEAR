@@ -11,15 +11,24 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <time.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 
 #ifdef _WIN32
-    /* Windows-specific headers and definitions */
+    /* ========================================================================
+     * WINDOWS PLATFORM COMPATIBILITY
+     * ======================================================================== */
+    
+    /* Windows-specific headers */
     #ifndef WIN32_LEAN_AND_MEAN
         #define WIN32_LEAN_AND_MEAN
     #endif
     #ifndef _WINSOCK_DEPRECATED_NO_WARNINGS
         #define _WINSOCK_DEPRECATED_NO_WARNINGS
     #endif
+    
     #include <windows.h>
     #include <winsock2.h>
     #include <ws2tcpip.h>
@@ -27,67 +36,96 @@
     #include <io.h>
     #include <fcntl.h>
     #include <direct.h>
-    #include <string.h>  /* strings.h functions are in string.h on Windows */
-    #include <sys/types.h>  /* For some type definitions */
-
+    #include <signal.h>
+    
+    /* Prevent ssize_t redefinition with json-c */
+    #ifndef _SSIZE_T_DEFINED
+        #define _SSIZE_T_DEFINED
+        typedef long ssize_t;
+    #endif
+    
     /* _Atomic keyword compatibility for MSVC */
-    /* MSVC doesn't support C11 _Atomic, use volatile instead */
     #ifndef _Atomic
         #define _Atomic volatile
     #endif
-
+    
     /* _Thread_local compatibility for MSVC */
     #ifndef _Thread_local
         #define _Thread_local __declspec(thread)
     #endif
-
-    /* netdb.h compatibility - functions available via ws2tcpip.h */
-    /* getaddrinfo, getnameinfo, etc. are available */
-
-    /* arpa/nameser.h compatibility - DNS message structures */
-    /* Windows doesn't have this, define minimal compatibility */
-    #ifndef _ARPA_NAMESER_H
-        #define _ARPA_NAMESER_H
+    
+    /* C11 atomic operations - map to simple volatile operations for Windows */
+    #define atomic_store(ptr, val) (*(ptr) = (val))
+    #define atomic_load(ptr) (*(ptr))
+    #define atomic_fetch_add(ptr, val) (_InterlockedExchangeAdd((long volatile*)(ptr), (long)(val)))
+    #define atomic_fetch_sub(ptr, val) (_InterlockedExchangeAdd((long volatile*)(ptr), -(long)(val)))
+    #define atomic_init(ptr, val) (*(ptr) = (val))
+    #define atomic_compare_exchange_weak(ptr, expected, desired) \
+        (_InterlockedCompareExchange((long volatile*)(ptr), (long)(desired), (long)(*(expected))) == (long)(*(expected)))
+    #define atomic_compare_exchange_strong(ptr, expected, desired) \
+        atomic_compare_exchange_weak(ptr, expected, desired)
+    
+    /* DNS message structures (arpa/nameser.h) */
+    #ifndef NS_PACKETSZ
         #define NS_PACKETSZ 512
         #define NS_MAXDNAME 1025
         #define NS_MAXMSG 65535
-        typedef struct {
-            unsigned short id;
-            unsigned short flags;
-            unsigned short qdcount;
-            unsigned short ancount;
-            unsigned short nscount;
-            unsigned short arcount;
-        } HEADER;
     #endif
-
-    /* resolv.h compatibility - minimal definitions */
-    #ifndef _RESOLV_H
-        #define _RESOLV_H
+    
+    /* resolv.h compatibility */
+    #ifndef RES_INIT
         #define RES_INIT 0x0001
         #define RES_DEBUG 0x0002
     #endif
-
-    /* Ensure INET6_ADDRSTRLEN is defined (available in ws2tcpip.h on modern Windows) */
+    
+    /* INET6_ADDRSTRLEN */
     #ifndef INET6_ADDRSTRLEN
         #define INET6_ADDRSTRLEN 46
     #endif
-
+    
     /* sys/types.h compatibility */
     typedef int pid_t;
     typedef unsigned int uid_t;
     typedef unsigned int gid_t;
-    typedef long ssize_t;
-    /* off_t is already defined in Windows sys/types.h, don't redefine */
-    #ifndef _OFF_T_DEFINED
-        typedef long long off_t;
+    
+    /* clock_gettime compatibility */
+    #ifndef CLOCK_MONOTONIC
+        #define CLOCK_MONOTONIC 1
+        #define CLOCK_REALTIME 0
+        
+        struct timespec_compat {
+            time_t tv_sec;
+            long tv_nsec;
+        };
+        #ifndef timespec
+            #define timespec timespec_compat
+        #endif
+        
+        static inline int clock_gettime(int clk_id, struct timespec *tp) {
+            LARGE_INTEGER freq, count;
+            (void)clk_id;
+            if (!QueryPerformanceFrequency(&freq) || !QueryPerformanceCounter(&count)) {
+                return -1;
+            }
+            tp->tv_sec = (time_t)(count.QuadPart / freq.QuadPart);
+            tp->tv_nsec = (long)((count.QuadPart % freq.QuadPart) * 1000000000LL / freq.QuadPart);
+            return 0;
+        }
     #endif
-
-    /* sys/random.h compatibility - use Windows Cryptography API */
+    
+    /* nanosleep compatibility */
+    static inline int nanosleep(const struct timespec *req, struct timespec *rem) {
+        (void)rem;
+        DWORD ms = (DWORD)(req->tv_sec * 1000 + req->tv_nsec / 1000000);
+        Sleep(ms);
+        return 0;
+    }
+    
+    /* getrandom compatibility */
     #include <wincrypt.h>
     static inline ssize_t getrandom(void *buf, size_t buflen, unsigned int flags) {
         HCRYPTPROV hProv;
-        (void)flags; /* Unused on Windows */
+        (void)flags;
         if (!CryptAcquireContext(&hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT)) {
             return -1;
         }
@@ -98,19 +136,40 @@
         CryptReleaseContext(hProv, 0);
         return (ssize_t)buflen;
     }
-
-    /* Map POSIX functions to Windows equivalents */
+    
+    /* syscall/SYS_getrandom compatibility - use getrandom directly */
+    #define SYS_getrandom 0
+    #define syscall(num, buf, len, flags) getrandom(buf, len, flags)
+    
+    /* fcntl compatibility */
+    #ifndef F_GETFL
+        #define F_GETFL 3
+        #define F_SETFL 4
+        #define O_NONBLOCK 0x0004
+        
+        static inline int fcntl(int fd, int cmd, ...) {
+            if (cmd == F_SETFL) {
+                unsigned long mode = 1;
+                return ioctlsocket((SOCKET)fd, FIONBIO, &mode);
+            }
+            return 0;
+        }
+    #endif
+    
+    /* MSG_NOSIGNAL doesn't exist on Windows */
+    #ifndef MSG_NOSIGNAL
+        #define MSG_NOSIGNAL 0
+    #endif
+    
+    /* POSIX function mappings */
     #define sleep(x) Sleep((x) * 1000)
     #define usleep(x) Sleep((x) / 1000)
     #define strcasecmp _stricmp
     #define strncasecmp _strnicmp
-    /* snprintf exists in modern Windows (VS 2015+), only define if needed */
-    #if _MSC_VER < 1900
-        #define snprintf _snprintf
-    #endif
+    #define strdup _strdup
     #define getpid _getpid
     #define mkdir(path, mode) _mkdir(path)
-
+    
     /* strcasestr - case-insensitive string search */
     static inline char* strcasestr(const char *haystack, const char *needle) {
         if (!haystack || !needle) return NULL;
@@ -123,62 +182,72 @@
         }
         return NULL;
     }
-
+    
     /* Thread compatibility */
     typedef HANDLE pthread_t;
     typedef CRITICAL_SECTION pthread_mutex_t;
     typedef void* (*pthread_start_routine)(void*);
-
-    #define pthread_mutex_init(m, attr) InitializeCriticalSection(m)
-    #define pthread_mutex_lock(m) EnterCriticalSection(m)
-    #define pthread_mutex_unlock(m) LeaveCriticalSection(m)
-    #define pthread_mutex_destroy(m) DeleteCriticalSection(m)
-
+    
+    /* pthread_mutex_init returns void on Windows, wrap it */
+    static inline int pthread_mutex_init_compat(pthread_mutex_t *m, void *attr) {
+        (void)attr;
+        InitializeCriticalSection(m);
+        return 0;
+    }
+    #define pthread_mutex_init(m, attr) pthread_mutex_init_compat(m, attr)
+    #define pthread_mutex_lock(m) (EnterCriticalSection(m), 0)
+    #define pthread_mutex_unlock(m) (LeaveCriticalSection(m), 0)
+    #define pthread_mutex_destroy(m) (DeleteCriticalSection(m), 0)
+    
     /* Socket compatibility */
     #define close closesocket
     typedef int socklen_t;
-
+    
+    /* setsockopt compatibility - Windows uses char* for optval */
+    #define SETSOCKOPT_OPTVAL_TYPE const char*
+    
     /* Path separator */
     #define PATH_SEPARATOR "\\"
-
+    
     /* Initialize Winsock */
     static inline int init_networking(void) {
         WSADATA wsa_data;
         return WSAStartup(MAKEWORD(2, 2), &wsa_data);
     }
-
+    
     static inline void cleanup_networking(void) {
         WSACleanup();
     }
-
-    /* pthread_create wrapper for Windows */
+    
+    /* pthread_create wrapper */
     static inline int pthread_create(pthread_t *thread, void *attr,
                                     pthread_start_routine start_routine,
                                     void *arg) {
-        (void)attr; /* Unused on Windows */
+        (void)attr;
         *thread = CreateThread(NULL, 0,
                               (LPTHREAD_START_ROUTINE)start_routine,
                               arg, 0, NULL);
         return (*thread == NULL) ? -1 : 0;
     }
-
-    /* pthread_join wrapper for Windows */
+    
+    /* pthread_join wrapper */
     static inline int pthread_join(pthread_t thread, void **retval) {
-        (void)retval; /* Unused on Windows */
+        (void)retval;
         WaitForSingleObject(thread, INFINITE);
         CloseHandle(thread);
         return 0;
     }
-
-    /* Signal handling - limited on Windows */
-    #include <signal.h>
+    
+    /* Signal handling */
     #ifndef SIGPIPE
         #define SIGPIPE 13
     #endif
-    /* SIG_IGN is defined in signal.h on Windows, don't redefine */
 
 #else
-    /* POSIX systems (Linux, macOS, BSD) */
+    /* ========================================================================
+     * POSIX PLATFORM (Linux, macOS, BSD)
+     * ======================================================================== */
+    
     #include <unistd.h>
     #include <pthread.h>
     #include <sys/socket.h>
@@ -187,30 +256,37 @@
     #include <netdb.h>
     #include <sys/mman.h>
     #include <signal.h>
-
+    #include <fcntl.h>
+    #include <stdatomic.h>
+    
+    /* setsockopt uses void* on POSIX */
+    #define SETSOCKOPT_OPTVAL_TYPE const void*
+    
     /* Path separator */
     #define PATH_SEPARATOR "/"
-
+    
     /* No-op initialization for POSIX */
     static inline int init_networking(void) { return 0; }
     static inline void cleanup_networking(void) { }
 
 #endif
 
-/* Common definitions across all platforms */
+/* ============================================================================
+ * COMMON DEFINITIONS (ALL PLATFORMS)
+ * ============================================================================ */
+
 #ifndef MAX_PATH
     #define MAX_PATH 4096
 #endif
 
-/* Memory locking - optional on Windows */
+/* Memory locking */
 #ifdef _WIN32
     #define mlock(addr, len) VirtualLock(addr, len)
     #define munlock(addr, len) VirtualUnlock(addr, len)
 #endif
 
-/* Atomic operations compatibility */
+/* Macro-based atomic operations for cross-platform use */
 #ifdef _WIN32
-    /* Atomic operation wrappers for Windows using Interlocked functions */
     #define ATOMIC_FETCH_ADD_32(ptr, val) InterlockedExchangeAdd((LONG volatile*)(ptr), (LONG)(val))
     #define ATOMIC_FETCH_ADD_64(ptr, val) InterlockedExchangeAdd64((LONGLONG volatile*)(ptr), (LONGLONG)(val))
     #define ATOMIC_LOAD_32(ptr) InterlockedOr((LONG volatile*)(ptr), 0)
@@ -218,8 +294,6 @@
     #define ATOMIC_STORE_32(ptr, val) InterlockedExchange((LONG volatile*)(ptr), (LONG)(val))
     #define ATOMIC_STORE_64(ptr, val) InterlockedExchange64((LONGLONG volatile*)(ptr), (LONGLONG)(val))
 #else
-    /* POSIX: Use standard C11 atomic operations */
-    #include <stdatomic.h>
     #define ATOMIC_FETCH_ADD_32(ptr, val) atomic_fetch_add(ptr, val)
     #define ATOMIC_FETCH_ADD_64(ptr, val) atomic_fetch_add(ptr, val)
     #define ATOMIC_LOAD_32(ptr) atomic_load(ptr)

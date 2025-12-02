@@ -29,9 +29,15 @@
     #include <netinet/udp.h>
     #include <netinet/ip.h>
     #include <netinet/ip_icmp.h>
-    #include <linux/if_packet.h>
+    #ifdef __linux__
+        #include <linux/if_packet.h>
+        #include <net/ethernet.h>
+    #endif
+#else
+    /* Windows: Raw socket headers not available, define minimal structures */
+    #define ETH_ALEN 6
+    #define IPPROTO_RAW 255
 #endif
-#include <net/ethernet.h>
 
 // Port scanner specific constants
 #ifndef PORT_SCANNER_MAX_PORTS

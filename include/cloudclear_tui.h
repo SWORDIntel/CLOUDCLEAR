@@ -6,7 +6,11 @@
 #ifndef CLOUDCLEAR_TUI_H
 #define CLOUDCLEAR_TUI_H
 
-#include <ncurses.h>
+#ifdef _WIN32
+    #include <curses.h>  /* PDCurses on Windows */
+#else
+    #include <ncurses.h>
+#endif
 #include <stdbool.h>
 #include <time.h>
 #include "advanced_ip_detection.h"

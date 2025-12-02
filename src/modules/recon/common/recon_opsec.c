@@ -11,8 +11,12 @@
 #include "recon_opsec.h"
 #include "platform_compat.h"
 #include <math.h>
-#include <sys/stat.h>
 #include <errno.h>
+#ifndef _WIN32
+    #include <sys/stat.h>
+    #include <sys/syscall.h>
+    #include <fcntl.h>
+#endif
 
 // User-Agent rotation pool for traffic obfuscation
 static const char *user_agent_pool[] = {

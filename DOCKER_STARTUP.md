@@ -1,18 +1,28 @@
 # CloudClear Docker Startup Guide
 
-## Random Port Assignment & Optional Caddy
+## Random Port Assignment
 
-CloudClear automatically assigns random available ports on startup to avoid port conflicts. **Caddy reverse proxy is optional** - you can run with or without it.
+CloudClear automatically assigns random available ports on startup to avoid port conflicts.
+
+**Default:** Direct API access (lightweight)
+**Optional:** Caddy reverse proxy for web UI (`USE_CADDY=1`)
 
 ## Quick Start
 
-### Start CloudClear with Caddy (Default - Recommended)
+### Start CloudClear (Default - Direct API)
 
 ```bash
 ./docker-start.sh
 ```
 
-Or explicitly enable Caddy:
+This will:
+
+1. Find a random available port for API
+2. Start the API container
+3. Display the assigned port
+4. Save port to `.docker-ports` file
+
+### Start CloudClear with Caddy (Optional Web UI)
 
 ```bash
 USE_CADDY=1 ./docker-start.sh
@@ -20,24 +30,10 @@ USE_CADDY=1 ./docker-start.sh
 
 This will:
 
-1. Find random available ports (HTTP and HTTPS for Caddy)
+1. Find random available ports (API + Caddy HTTP/HTTPS)
 2. Start API and Caddy containers
-3. Display the assigned ports clearly
-4. Save ports to `.docker-ports` file for reference
-5. Provide web UI access through Caddy
-
-### Start CloudClear without Caddy (Direct API Access)
-
-```bash
-USE_CADDY=0 ./docker-start.sh
-```
-
-This will:
-
-1. Find random available port for direct API access
-2. Start only the API container (no Caddy)
-3. Display the direct API port
-4. **Note:** Web UI will not be available without Caddy
+3. Display all assigned ports
+4. Provide web UI access through Caddy
 
 ### View Current Ports
 
@@ -56,42 +52,18 @@ This displays:
 
 ## Example Output
 
-### With Caddy Enabled (Default)
+### Default (Direct API)
 
 When you run `./docker-start.sh`, you'll see:
 
 ```
-Mode: Caddy Reverse Proxy Enabled
+Mode: Direct API Access
 
 ╔════════════════════════════════════════════════════════════╗
 ║                    ACCESS INFORMATION                      ║
 ╚════════════════════════════════════════════════════════════╝
 
-Web Interface (HTTP):
-  http://localhost:8143
-
-Web Interface (HTTPS):
-  https://localhost:9778
-
-API Health Check (via Caddy):
-  http://localhost:8143/health
-
-API Endpoint (via Caddy):
-  http://localhost:8143/api/
-```
-
-### Without Caddy (Direct API)
-
-When you run `USE_CADDY=0 ./docker-start.sh`, you'll see:
-
-```
-Mode: Direct API Access (Caddy Disabled)
-
-╔════════════════════════════════════════════════════════════╗
-║                    ACCESS INFORMATION                      ║
-╚════════════════════════════════════════════════════════════╝
-
-API Direct Access:
+API Access:
   http://localhost:8118
 
 API Health Check:
@@ -100,36 +72,60 @@ API Health Check:
 API Endpoint:
   http://localhost:8118/api/
 
-Note: Caddy reverse proxy is disabled. Web UI not available.
-      Enable with: USE_CADDY=1 ./docker-start.sh
+Tip: Enable web UI with: USE_CADDY=1 ./docker-start.sh
+```
+
+### With Caddy (Optional)
+
+When you run `USE_CADDY=1 ./docker-start.sh`, you'll see:
+
+```
+Mode: API + Caddy Reverse Proxy
+
+╔════════════════════════════════════════════════════════════╗
+║                    ACCESS INFORMATION                      ║
+╚════════════════════════════════════════════════════════════╝
+
+API Access:
+  http://localhost:8118
+
+API Health Check:
+  http://localhost:8118/health
+
+API Endpoint:
+  http://localhost:8118/api/
+
+Web Interface (via Caddy):
+  HTTP:  http://localhost:8143
+  HTTPS: https://localhost:9778
 ```
 
 ## Manual Port Assignment
 
-### With Caddy
-
-If you want to use specific ports instead of random ones:
+### Specific API Port
 
 ```bash
+export API_DIRECT_PORT=5000
+./docker-start.sh
+```
+
+### With Caddy and Specific Ports
+
+```bash
+export API_DIRECT_PORT=5000
 export CADDY_HTTP_PORT=8080
 export CADDY_HTTPS_PORT=8443
 USE_CADDY=1 ./docker-start.sh
 ```
 
-### Direct API Access
-
-For direct API access with a specific port:
-
-```bash
-export API_DIRECT_PORT=5000
-USE_CADDY=0 ./docker-start.sh
-```
-
-Or use docker-compose directly:
+### Using docker-compose directly
 
 ```bash
 export API_DIRECT_PORT=5000
 docker-compose up -d cloudclear-api
+
+# Or with Caddy
+docker-compose --profile caddy up -d
 ```
 
 ## Useful Commands
@@ -153,26 +149,26 @@ docker-compose ps
 
 ## Port Ranges
 
+- **API ports**: Randomly selected from range 8000-9000
 - **Caddy HTTP ports**: Randomly selected from range 8000-9000
 - **Caddy HTTPS ports**: Randomly selected from range 9000-10000
-- **Direct API ports**: Randomly selected from range 8000-9000
 
 Ports are automatically checked for availability before assignment.
 
-## Caddy vs Direct API
+## When to Use Caddy
 
-### When to Use Caddy (Default)
+**Default (Direct API)** is recommended for:
 
-- ✅ You want the web UI
-- ✅ You need HTTPS/SSL termination
-- ✅ You want reverse proxy features
-- ✅ You need static file serving
+- ✅ API-only access
+- ✅ Minimal resource usage
+- ✅ Running behind another reverse proxy
+- ✅ Development and testing
 
-### When to Use Direct API
+**With Caddy** (`USE_CADDY=1`) is useful for:
 
-- ✅ You only need API access
-- ✅ You want minimal resource usage
-- ✅ You're running behind another reverse proxy
-- ✅ You don't need the web UI
+- ✅ Web UI access
+- ✅ HTTPS/SSL termination
+- ✅ Static file serving
+- ✅ Production with web interface
 
-**Fallback**: Even with Caddy enabled, direct API access is always available as a fallback.
+**Note**: API is always directly accessible, even when Caddy is enabled.

@@ -94,44 +94,42 @@ echo -e "${NC}"
 check_docker_compose
 DOCKER_COMPOSE_CMD=$(get_docker_compose_cmd)
 
-# Check if Caddy should be enabled (default: enabled, set USE_CADDY=0 to disable)
-USE_CADDY=${USE_CADDY:-1}
+# Default: Direct API access. Caddy is optional fallback (USE_CADDY=1 to enable)
+USE_CADDY=${USE_CADDY:-0}
 CADDY_PROFILE=""
 
+# Find available port for API
+echo -e "${YELLOW}Finding available port for API...${NC}"
+API_PORT=$(find_available_port 8000 9000)
+export API_DIRECT_PORT=$API_PORT
+
+echo -e "${GREEN}✓ Found available port:${NC}"
+echo -e "  API Port:   ${CYAN}${API_PORT}${NC}"
+
 if [ "$USE_CADDY" = "1" ] || [ "$USE_CADDY" = "true" ]; then
-    echo -e "${CYAN}Mode: ${GREEN}Caddy Reverse Proxy Enabled${NC}"
+    echo -e "${CYAN}Mode: ${GREEN}API + Caddy Reverse Proxy${NC}"
     CADDY_PROFILE="--profile caddy"
 
-    # Find available ports for Caddy
+    # Find additional ports for Caddy
     echo -e "${YELLOW}Finding available ports for Caddy...${NC}"
     HTTP_PORT=$(find_available_port 8000 9000)
-    HTTPS_PORT=$(find_available_port 9000 10000)
-
-    # Ensure HTTPS port is different from HTTP port
-    while [ "$HTTPS_PORT" == "$HTTP_PORT" ]; do
-        HTTPS_PORT=$(find_available_port 9000 10000)
+    # Ensure HTTP port is different from API port
+    while [ "$HTTP_PORT" == "$API_PORT" ]; do
+        HTTP_PORT=$(find_available_port 8000 9000)
     done
 
-    echo -e "${GREEN}✓ Found available ports:${NC}"
+    HTTPS_PORT=$(find_available_port 9000 10000)
+
     echo -e "  HTTP Port:  ${CYAN}${HTTP_PORT}${NC}"
     echo -e "  HTTPS Port: ${CYAN}${HTTPS_PORT}${NC}"
-    echo ""
 
     # Export ports as environment variables
     export CADDY_HTTP_PORT=$HTTP_PORT
     export CADDY_HTTPS_PORT=$HTTPS_PORT
 else
-    echo -e "${CYAN}Mode: ${YELLOW}Direct API Access (Caddy Disabled)${NC}"
-    echo -e "${YELLOW}Finding available port for direct API access...${NC}"
-
-    # Find port for direct API access
-    API_DIRECT_PORT=$(find_available_port 8000 9000)
-    export API_DIRECT_PORT=$API_DIRECT_PORT
-
-    echo -e "${GREEN}✓ Found available port:${NC}"
-    echo -e "  API Port:   ${CYAN}${API_DIRECT_PORT}${NC}"
-    echo ""
+    echo -e "${CYAN}Mode: ${GREEN}Direct API Access${NC}"
 fi
+echo ""
 
 # Stop any existing containers
 echo -e "${YELLOW}Stopping any existing containers...${NC}"
@@ -161,49 +159,39 @@ if $DOCKER_COMPOSE_CMD ps | grep -q "Up"; then
     echo -e "${CYAN}╚════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 
-    if [ "$USE_CADDY" = "1" ] || [ "$USE_CADDY" = "true" ]; then
-        # Caddy mode - show web interface and API through Caddy
-        echo -e "${GREEN}Web Interface (HTTP):${NC}"
-        echo -e "  ${BLUE}http://localhost:${HTTP_PORT}${NC}"
-        echo ""
-        echo -e "${GREEN}Web Interface (HTTPS):${NC}"
-        echo -e "  ${BLUE}https://localhost:${HTTPS_PORT}${NC}"
-        echo ""
-        echo -e "${GREEN}API Health Check (via Caddy):${NC}"
-        echo -e "  ${BLUE}http://localhost:${HTTP_PORT}/health${NC}"
-        echo ""
-        echo -e "${GREEN}API Endpoint (via Caddy):${NC}"
-        echo -e "  ${BLUE}http://localhost:${HTTP_PORT}/api/${NC}"
-        echo ""
-        echo -e "${YELLOW}Direct API Access (fallback):${NC}"
-        echo -e "  ${BLUE}http://localhost:$(docker port cloudclear-api 8080/tcp 2>/dev/null | cut -d: -f2 || echo 'N/A')${NC}"
+    # Get actual assigned API port from Docker
+    ACTUAL_API_PORT=$(docker port cloudclear-api 2>/dev/null | grep "8080/tcp" | cut -d: -f2 | head -1)
+    if [ -z "$ACTUAL_API_PORT" ]; then
+        ACTUAL_API_PORT=$API_PORT
+    fi
 
-        # Save ports
-        echo "$HTTP_PORT" > .docker-ports
+    # Always show direct API access
+    echo -e "${GREEN}API Access:${NC}"
+    echo -e "  ${BLUE}http://localhost:${ACTUAL_API_PORT}${NC}"
+    echo ""
+    echo -e "${GREEN}API Health Check:${NC}"
+    echo -e "  ${BLUE}http://localhost:${ACTUAL_API_PORT}/health${NC}"
+    echo ""
+    echo -e "${GREEN}API Endpoint:${NC}"
+    echo -e "  ${BLUE}http://localhost:${ACTUAL_API_PORT}/api/${NC}"
+
+    # Save API port
+    echo "$ACTUAL_API_PORT" > .docker-ports
+
+    if [ "$USE_CADDY" = "1" ] || [ "$USE_CADDY" = "true" ]; then
+        # Also show Caddy access
+        echo ""
+        echo -e "${GREEN}Web Interface (via Caddy):${NC}"
+        echo -e "  HTTP:  ${BLUE}http://localhost:${HTTP_PORT}${NC}"
+        echo -e "  HTTPS: ${BLUE}https://localhost:${HTTPS_PORT}${NC}"
+
+        # Save Caddy ports
+        echo "$HTTP_PORT" >> .docker-ports
         echo "$HTTPS_PORT" >> .docker-ports
         echo "caddy" >> .docker-ports
     else
-        # Direct API mode - get actual assigned port from Docker
-        ACTUAL_API_PORT=$(docker port cloudclear-api 2>/dev/null | grep "8080/tcp" | cut -d: -f2 | head -1)
-        if [ -z "$ACTUAL_API_PORT" ]; then
-            ACTUAL_API_PORT=$API_DIRECT_PORT
-        fi
-
-        # Direct API mode - show direct API access
-        echo -e "${GREEN}API Direct Access:${NC}"
-        echo -e "  ${BLUE}http://localhost:${ACTUAL_API_PORT}${NC}"
         echo ""
-        echo -e "${GREEN}API Health Check:${NC}"
-        echo -e "  ${BLUE}http://localhost:${ACTUAL_API_PORT}/health${NC}"
-        echo ""
-        echo -e "${GREEN}API Endpoint:${NC}"
-        echo -e "  ${BLUE}http://localhost:${ACTUAL_API_PORT}/api/${NC}"
-        echo ""
-        echo -e "${YELLOW}Note:${NC} Caddy reverse proxy is disabled. Web UI not available."
-        echo -e "      Enable with: ${CYAN}USE_CADDY=1 ./docker-start.sh${NC}"
-
-        # Save port
-        echo "$ACTUAL_API_PORT" > .docker-ports
+        echo -e "${YELLOW}Tip:${NC} Enable web UI with: ${CYAN}USE_CADDY=1 ./docker-start.sh${NC}"
         echo "direct" >> .docker-ports
     fi
 

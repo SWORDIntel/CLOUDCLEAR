@@ -1,0 +1,5 @@
+# CloudClear Simple API - Minimal Dependencies
+# Lightweight JSON endpoint for Docker deployments
+
+flask==3.0.0
+flask-cors==4.0.0

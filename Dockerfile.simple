@@ -1,0 +1,68 @@
+# CloudClear - Simple API Docker Image
+# Lightweight localhost-bound JSON endpoint
+
+FROM debian:bookworm-slim AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    gcc \
+    make \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libjson-c-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy source code
+WORKDIR /build
+COPY src/ ./src/
+COPY include/ ./include/
+COPY Makefile ./
+
+# Build CloudClear (standard version only)
+RUN make clean && make all
+
+# Runtime stage
+FROM debian:bookworm-slim
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    libcurl4 \
+    libssl3 \
+    libjson-c5 \
+    python3 \
+    python3-pip \
+    curl \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create app directory
+WORKDIR /app
+
+# Copy built binary from builder
+COPY --from=builder /build/cloudclear /app/cloudclear
+
+# Copy simple API
+COPY api/simple_api.py /app/
+COPY api/requirements-simple.txt /app/
+
+# Install Python dependencies
+RUN pip3 install --no-cache-dir --break-system-packages -r requirements-simple.txt
+
+# Set environment variables
+ENV CLOUDCLEAR_BIN=/app/cloudclear
+ENV API_PORT=5000
+ENV API_HOST=0.0.0.0
+ENV SCAN_TIMEOUT=300
+ENV PYTHONUNBUFFERED=1
+
+# Expose API port
+EXPOSE 5000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:5000/health || exit 1
+
+# Start Simple API
+CMD ["python3", "/app/simple_api.py"]

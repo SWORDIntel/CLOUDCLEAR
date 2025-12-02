@@ -2,6 +2,7 @@
  * CloudClear - GCP Integration Implementation
  */
 
+#include "platform_compat.h"
 #include "gcp.h"
 #include <string.h>
 #include <stdlib.h>

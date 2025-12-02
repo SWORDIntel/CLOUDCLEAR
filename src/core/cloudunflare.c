@@ -949,7 +949,7 @@ int perform_advanced_reconnaissance(struct recon_session *session, const char *d
                     if (cve_ctx.results[i].vulnerable && cve_ctx.results[i].cve.affects_cdn_bypass) {
                         printf("\n[ALERT] CDN BYPASS VULNERABILITY FOUND!\n");
                         printf("[ALERT] CVE: %s (%s)\n", cve_ctx.results[i].cve.cve_id,
-                               cve_ctx.results[i].cve.name);
+                               cve_ctx.results[i].cve.title);
                         printf("[ALERT] CVSS Score: %.1f\n", cve_ctx.results[i].cve.cvss_score);
                         printf("[ALERT] Confidence: %.0f%%\n", cve_ctx.results[i].confidence * 100);
                         if (cve_ctx.results[i].evidence[0]) {

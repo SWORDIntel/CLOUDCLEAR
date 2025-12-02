@@ -2,6 +2,7 @@
  * Alibaba Cloud Integration Implementation
  */
 
+#include "platform_compat.h"
 #include "alibaba.h"
 #include <string.h>
 

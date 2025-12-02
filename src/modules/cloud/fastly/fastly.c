@@ -2,6 +2,7 @@
  * Fastly CDN Integration Implementation
  */
 
+#include "platform_compat.h"
 #include "fastly.h"
 #include <string.h>
 #include <stdio.h>

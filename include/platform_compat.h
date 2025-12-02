@@ -20,7 +20,7 @@
     /* ========================================================================
      * WINDOWS PLATFORM COMPATIBILITY
      * ======================================================================== */
-    
+
     /* Windows-specific headers */
     #ifndef WIN32_LEAN_AND_MEAN
         #define WIN32_LEAN_AND_MEAN
@@ -28,7 +28,7 @@
     #ifndef _WINSOCK_DEPRECATED_NO_WARNINGS
         #define _WINSOCK_DEPRECATED_NO_WARNINGS
     #endif
-    
+
     #include <windows.h>
     #include <winsock2.h>
     #include <ws2tcpip.h>
@@ -37,7 +37,7 @@
     #include <fcntl.h>
     #include <direct.h>
     #include <signal.h>
-    
+
     /* ========================================================================
      * ssize_t compatibility - must handle json-c conflict
      * json-c defines ssize_t in json_inttypes.h, so we need to be careful
@@ -56,17 +56,17 @@
             #endif
         #endif
     #endif
-    
+
     /* _Atomic keyword compatibility for MSVC */
     #ifndef _Atomic
         #define _Atomic volatile
     #endif
-    
+
     /* _Thread_local compatibility for MSVC */
     #ifndef _Thread_local
         #define _Thread_local __declspec(thread)
     #endif
-    
+
     /* C11 atomic operations - map to simple volatile operations for Windows */
     #define atomic_store(ptr, val) (*(ptr) = (val))
     #define atomic_load(ptr) (*(ptr))
@@ -77,7 +77,7 @@
         (_InterlockedCompareExchange((long volatile*)(ptr), (long)(desired), (long)(*(expected))) == (long)(*(expected)))
     #define atomic_compare_exchange_strong(ptr, expected, desired) \
         atomic_compare_exchange_weak(ptr, expected, desired)
-    
+
     /* ========================================================================
      * mmap/munmap compatibility using VirtualAlloc/VirtualFree
      * ======================================================================== */
@@ -85,22 +85,22 @@
     #define PROT_READ  0x1
     #define PROT_WRITE 0x2
     #define PROT_EXEC  0x4
-    
+
     #define MAP_SHARED    0x01
     #define MAP_PRIVATE   0x02
     #define MAP_ANONYMOUS 0x20
     #define MAP_ANON      MAP_ANONYMOUS
     #define MAP_FAILED    ((void*)-1)
-    
+
     static inline void* mmap(void *addr, size_t length, int prot, int flags, int fd, size_t offset) {
         DWORD protect = PAGE_NOACCESS;
         DWORD access = 0;
-        
+
         (void)addr;
         (void)fd;
         (void)offset;
         (void)flags;
-        
+
         /* Map protection flags */
         if ((prot & PROT_WRITE) && (prot & PROT_READ)) {
             protect = PAGE_READWRITE;
@@ -109,7 +109,7 @@
         } else if (prot & PROT_WRITE) {
             protect = PAGE_READWRITE;
         }
-        
+
         if (prot & PROT_EXEC) {
             if (protect == PAGE_READWRITE) {
                 protect = PAGE_EXECUTE_READWRITE;
@@ -119,60 +119,62 @@
                 protect = PAGE_EXECUTE;
             }
         }
-        
+
         void *ptr = VirtualAlloc(NULL, length, MEM_COMMIT | MEM_RESERVE, protect);
         return ptr ? ptr : MAP_FAILED;
     }
-    
+
     static inline int munmap(void *addr, size_t length) {
         (void)length;
         return VirtualFree(addr, 0, MEM_RELEASE) ? 0 : -1;
     }
-    
+
     /* ========================================================================
      * DNS/Network structures
      * ======================================================================== */
-    
+
     /* DNS message structures (arpa/nameser.h) */
     #ifndef NS_PACKETSZ
         #define NS_PACKETSZ 512
         #define NS_MAXDNAME 1025
         #define NS_MAXMSG 65535
     #endif
-    
+
     /* resolv.h compatibility */
     #ifndef RES_INIT
         #define RES_INIT 0x0001
         #define RES_DEBUG 0x0002
     #endif
-    
+
     /* INET6_ADDRSTRLEN */
     #ifndef INET6_ADDRSTRLEN
         #define INET6_ADDRSTRLEN 46
     #endif
-    
+
     /* ========================================================================
      * sys/types.h compatibility
      * ======================================================================== */
     typedef int pid_t;
     typedef unsigned int uid_t;
     typedef unsigned int gid_t;
-    
+
     /* ========================================================================
      * clock_gettime compatibility
      * ======================================================================== */
     #ifndef CLOCK_MONOTONIC
         #define CLOCK_MONOTONIC 1
         #define CLOCK_REALTIME 0
-        
-        #ifndef _TIMESPEC_DEFINED
+
+        /* timespec is already defined in MSVC 2015+ (ucrt/time.h) 
+         * Only define if not already defined by the system */
+        #if !defined(_TIMESPEC_DEFINED) && !defined(__struct_timespec_defined) && (_MSC_VER < 1900)
             #define _TIMESPEC_DEFINED
             struct timespec {
                 time_t tv_sec;
                 long tv_nsec;
             };
         #endif
-        
+
         static inline int clock_gettime(int clk_id, struct timespec *tp) {
             LARGE_INTEGER freq, count;
             (void)clk_id;
@@ -184,7 +186,7 @@
             return 0;
         }
     #endif
-    
+
     /* nanosleep compatibility */
     static inline int nanosleep(const struct timespec *req, struct timespec *rem) {
         (void)rem;
@@ -192,7 +194,7 @@
         Sleep(ms);
         return 0;
     }
-    
+
     /* ========================================================================
      * Random number generation
      * ======================================================================== */
@@ -210,11 +212,11 @@
         CryptReleaseContext(hProv, 0);
         return (ssize_t)buflen;
     }
-    
+
     /* syscall/SYS_getrandom compatibility - use getrandom directly */
     #define SYS_getrandom 0
     #define syscall(num, buf, len, flags) getrandom(buf, len, flags)
-    
+
     /* ========================================================================
      * fcntl compatibility
      * ======================================================================== */
@@ -222,7 +224,7 @@
         #define F_GETFL 3
         #define F_SETFL 4
         #define O_NONBLOCK 0x0004
-        
+
         static inline int fcntl(int fd, int cmd, ...) {
             if (cmd == F_SETFL) {
                 unsigned long mode = 1;
@@ -231,12 +233,12 @@
             return 0;
         }
     #endif
-    
+
     /* MSG_NOSIGNAL doesn't exist on Windows */
     #ifndef MSG_NOSIGNAL
         #define MSG_NOSIGNAL 0
     #endif
-    
+
     /* ========================================================================
      * POSIX function mappings
      * ======================================================================== */
@@ -248,7 +250,7 @@
     #define getpid _getpid
     #define mkdir(path, mode) _mkdir(path)
     #define unlink _unlink
-    
+
     /* strcasestr - case-insensitive string search */
     static inline char* strcasestr(const char *haystack, const char *needle) {
         if (!haystack || !needle) return NULL;
@@ -261,7 +263,7 @@
         }
         return NULL;
     }
-    
+
     /* ========================================================================
      * pthread compatibility
      * ======================================================================== */
@@ -269,10 +271,10 @@
     typedef CRITICAL_SECTION pthread_mutex_t;
     typedef void* pthread_mutexattr_t;
     typedef void* (*pthread_start_routine)(void*);
-    
+
     /* Static mutex initializer - Windows needs runtime init, so we use a sentinel */
     #define PTHREAD_MUTEX_INITIALIZER {(void*)-1, -1, 0, 0, 0, 0}
-    
+
     /* pthread_mutex_init wrapper */
     static inline int pthread_mutex_init_compat(pthread_mutex_t *m, const pthread_mutexattr_t *attr) {
         (void)attr;
@@ -283,13 +285,13 @@
     #define pthread_mutex_lock(m) (EnterCriticalSection(m), 0)
     #define pthread_mutex_unlock(m) (LeaveCriticalSection(m), 0)
     #define pthread_mutex_destroy(m) (DeleteCriticalSection(m), 0)
-    
+
     /* pthread_cancel - not directly supported on Windows, stub it */
     static inline int pthread_cancel(pthread_t thread) {
         /* TerminateThread is dangerous, but it's the only option */
         return TerminateThread(thread, 0) ? 0 : -1;
     }
-    
+
     /* pthread_create wrapper */
     static inline int pthread_create(pthread_t *thread, void *attr,
                                     pthread_start_routine start_routine,
@@ -300,7 +302,7 @@
                               arg, 0, NULL);
         return (*thread == NULL) ? -1 : 0;
     }
-    
+
     /* pthread_join wrapper */
     static inline int pthread_join(pthread_t thread, void **retval) {
         (void)retval;
@@ -308,25 +310,25 @@
         CloseHandle(thread);
         return 0;
     }
-    
+
     /* ========================================================================
      * Socket compatibility
      * ======================================================================== */
     #define close closesocket
     typedef int socklen_t;
-    
+
     /* setsockopt compatibility - Windows uses char* for optval */
     #define SETSOCKOPT_OPTVAL_TYPE const char*
-    
+
     /* ========================================================================
      * Path and signal handling
      * ======================================================================== */
     #define PATH_SEPARATOR "\\"
-    
+
     #ifndef SIGPIPE
         #define SIGPIPE 13
     #endif
-    
+
     /* ========================================================================
      * Winsock initialization
      * ======================================================================== */
@@ -334,7 +336,7 @@
         WSADATA wsa_data;
         return WSAStartup(MAKEWORD(2, 2), &wsa_data);
     }
-    
+
     static inline void cleanup_networking(void) {
         WSACleanup();
     }
@@ -343,7 +345,7 @@
     /* ========================================================================
      * POSIX PLATFORM (Linux, macOS, BSD)
      * ======================================================================== */
-    
+
     #include <unistd.h>
     #include <pthread.h>
     #include <sys/socket.h>
@@ -354,13 +356,13 @@
     #include <signal.h>
     #include <fcntl.h>
     #include <stdatomic.h>
-    
+
     /* setsockopt uses void* on POSIX */
     #define SETSOCKOPT_OPTVAL_TYPE const void*
-    
+
     /* Path separator */
     #define PATH_SEPARATOR "/"
-    
+
     /* No-op initialization for POSIX */
     static inline int init_networking(void) { return 0; }
     static inline void cleanup_networking(void) { }

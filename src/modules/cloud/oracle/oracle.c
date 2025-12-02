@@ -2,6 +2,7 @@
  * Oracle Cloud Integration Implementation
  */
 
+#include "platform_compat.h"
 #include "oracle.h"
 #include <string.h>
 

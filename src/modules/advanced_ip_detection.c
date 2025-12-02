@@ -312,6 +312,16 @@ int add_origin_candidate(struct advanced_ip_detection_result *result,
 
 // Enumerate MX records for mail server analysis
 int enumerate_mx_records(const char *domain, struct mx_record_info **mx_records, int *count) {
+#ifdef _WIN32
+    /* Windows does not have POSIX DNS resolver APIs (ns_msg, res_query, etc.)
+     * This functionality requires Windows-specific DnsQuery API which is more complex.
+     * For now, return not supported on Windows. */
+    (void)domain;
+    *mx_records = NULL;
+    *count = 0;
+    fprintf(stderr, "MX record enumeration not supported on Windows\n");
+    return -1;
+#else
     unsigned char response[4096];
     ns_msg handle;
     ns_rr rr;
@@ -377,6 +387,7 @@ int enumerate_mx_records(const char *domain, struct mx_record_info **mx_records,
     }
 
     return *count;
+#endif /* !_WIN32 */
 }
 
 // Analyze mail server infrastructure
@@ -470,6 +481,14 @@ const char** get_common_srv_services(int *count) {
 
 // Discover SRV records
 int discover_srv_records(const char *domain, struct srv_record_info **srv_records, int *count) {
+#ifdef _WIN32
+    /* Windows does not have POSIX DNS resolver APIs */
+    (void)domain;
+    *srv_records = NULL;
+    *count = 0;
+    fprintf(stderr, "SRV record discovery not supported on Windows\n");
+    return 0;
+#else
     int service_count;
     const char **services = get_common_srv_services(&service_count);
 
@@ -515,6 +534,7 @@ int discover_srv_records(const char *domain, struct srv_record_info **srv_record
     }
 
     return *count;
+#endif /* !_WIN32 */
 }
 
 // Analyze HTTP headers for CDN/origin detection
@@ -938,6 +958,13 @@ int analyze_ptr_records(struct advanced_ip_detection_result *result) {
 
 // Query ASN information for IP
 int query_asn_information(const char *ip_address, struct asn_network_info *asn_info) {
+#ifdef _WIN32
+    /* Windows does not have POSIX DNS resolver APIs */
+    (void)ip_address;
+    memset(asn_info, 0, sizeof(*asn_info));
+    fprintf(stderr, "ASN query not supported on Windows\n");
+    return -1;
+#else
     // Use cymru.com DNS-based ASN lookup
     // Format: reverse IP + .origin.asn.cymru.com
     struct in_addr addr;
@@ -1010,6 +1037,7 @@ int query_asn_information(const char *ip_address, struct asn_network_info *asn_i
     }
 
     return -1;
+#endif /* !_WIN32 */
 }
 
 // Cluster IPs by ASN

@@ -71,7 +71,7 @@ services:
 
     # Health monitoring
     healthcheck:
-      test: ["/app/healthcheck.sh"]
+      test: ["CMD-SHELL", "/app/healthcheck.sh"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -149,7 +149,7 @@ services:
     command: ["/app/cloudclear-recon"]
 
     healthcheck:
-      test: ["/app/healthcheck.sh"]
+      test: ["CMD-SHELL", "/app/healthcheck.sh"]
       interval: 45s
       timeout: 15s
       retries: 3

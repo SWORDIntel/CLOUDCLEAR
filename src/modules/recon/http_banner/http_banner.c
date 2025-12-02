@@ -703,36 +703,62 @@ int http_banner_extract_cert_info(X509 *cert, ssl_cert_info_t *cert_info) {
     return 0;
 }
 
+// Helper: get header value (case-insensitive name match)
+const char *http_banner_get_header_value(const http_response_t *response, const char *header_name) {
+    if (!response || !header_name) return NULL;
+
+    for (uint32_t i = 0; i < response->header_count; i++) {
+        if (strcasecmp(response->headers[i].name, header_name) == 0) {
+            return response->headers[i].value;
+        }
+    }
+    return NULL;
+}
+
+// Helper: check if header value contains a substring (case-sensitive match on value)
+bool http_banner_header_contains(const http_response_t *response, const char *header_name, const char *value) {
+    const char *header_val = http_banner_get_header_value(response, header_name);
+    if (!header_val || !value || value[0] == '\0') {
+        // If value is empty, just check existence
+        return header_val != NULL;
+    }
+    return strstr(header_val, value) != NULL;
+}
+
 int http_banner_analyze_security_headers(const http_response_t *response, char security_headers[][256], uint32_t *header_count) {
     if (!response || !security_headers || !header_count) return -1;
-    
+
     *header_count = 0;
-    
-    // Analyze common security headers
-    if (strstr(response->headers, "Strict-Transport-Security")) {
+
+    // Analyze common security headers by presence
+    if (http_banner_get_header_value(response, "Strict-Transport-Security")) {
         snprintf(security_headers[(*header_count)++], 256, "HSTS: Enabled");
     }
-    if (strstr(response->headers, "Content-Security-Policy")) {
+    if (http_banner_get_header_value(response, "Content-Security-Policy")) {
         snprintf(security_headers[(*header_count)++], 256, "CSP: Enabled");
     }
-    if (strstr(response->headers, "X-Frame-Options")) {
+    if (http_banner_get_header_value(response, "X-Frame-Options")) {
         snprintf(security_headers[(*header_count)++], 256, "X-Frame-Options: Enabled");
     }
-    
+
     return 0;
 }
 
 int http_banner_detect_technologies(const http_response_t *response, technology_detection_t *technologies, uint32_t *tech_count) {
     if (!response || !technologies || !tech_count) return -1;
-    
+
     *tech_count = 0;
-    
-    // Simple technology detection based on headers
-    if (strstr(response->headers, "X-Powered-By")) {
+
+    // Simple technology detection based on X-Powered-By header presence
+    const char *powered_by = http_banner_get_header_value(response, "X-Powered-By");
+    if (powered_by) {
         *tech_count = 1;
-        strncpy(technologies[0].technology, "Unknown", sizeof(technologies[0].technology) - 1);
+        // For now, we don't parse specific technology/version; just mark as present
+        strncpy(technologies[0].technology, "X-Powered-By", sizeof(technologies[0].technology) - 1);
+        technologies[0].technology[sizeof(technologies[0].technology) - 1] = '\0';
         strncpy(technologies[0].version, "Unknown", sizeof(technologies[0].version) - 1);
+        technologies[0].version[sizeof(technologies[0].version) - 1] = '\0';
     }
-    
+
     return 0;
 }

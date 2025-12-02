@@ -204,6 +204,7 @@ int radar_scan_parallel_execute(radar_scan_context_t *ctx, uint32_t thread_count
 // API operations
 int radar_scan_api_request(const char *domain, radar_scan_type_t scan_type, char *response_buffer, size_t buffer_size);
 int radar_scan_api_validate_response(const char *response_data, size_t data_len);
+int radar_scan_comprehensive(const char *domain, radar_scan_result_t *result);
 
 // Result parsing and processing
 int radar_scan_parse_response(const char *response_data, size_t data_len, radar_scan_result_t *result);

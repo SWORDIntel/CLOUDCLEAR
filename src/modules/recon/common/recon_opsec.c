@@ -14,7 +14,7 @@
 #include <errno.h>
 #ifndef _WIN32
     #include <sys/stat.h>
-    #include <sys/syscall.h>
+    #include <sys/random.h>
     #include <fcntl.h>
 #endif
 
@@ -602,17 +602,15 @@ void opsec_execute_emergency_cleanup(opsec_context_t *ctx) {
 void opsec_generate_secure_random(uint8_t *buffer, size_t size) {
     if (!buffer || size == 0) return;
 
-#ifdef _WIN32
-    // Windows: Use CryptGenRandom via getrandom() wrapper in platform_compat.h
-    if (getrandom(buffer, size, 0) == (ssize_t)size) {
-        return;
+    // Primary path: cross-platform getrandom()
+    // - Windows: provided by platform_compat.h (CryptGenRandom)
+    // - Linux/POSIX: from <sys/random.h>
+    {
+        ssize_t result = getrandom(buffer, size, 0);
+        if (result == (ssize_t)size) {
+            return;
+        }
     }
-#else
-    // Try getrandom() first (Linux 3.17+)
-    if (syscall(SYS_getrandom, buffer, size, 0) == (ssize_t)size) {
-        return;
-    }
-#endif
 
     // Fallback to OpenSSL
     if (RAND_bytes(buffer, (int)size) == 1) {

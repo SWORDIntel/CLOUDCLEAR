@@ -32,16 +32,19 @@
 Deploy CloudClear with a modern TEMPEST Class C web UI:
 
 ```bash
-# Configure environment
-cp .env.example .env
-# Edit .env with your API keys
+# Start with random ports (recommended - avoids port conflicts)
+./docker-start.sh
 
-# Deploy with Docker Compose
+# Or use Docker Compose directly
 docker-compose up -d
 
-# Access at:
-# https://scan.yourdomain.com
+# View assigned ports
+./docker-ports.sh
 ```
+
+**Random Port Assignment**: The startup script automatically finds available ports and displays them to you!
+
+See [DOCKER_STARTUP.md](DOCKER_STARTUP.md) for detailed Docker usage.
 
 Features:
 - 🌐 TEMPEST Class C Security-Focused Web Interface

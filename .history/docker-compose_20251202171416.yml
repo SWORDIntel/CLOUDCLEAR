@@ -8,10 +8,6 @@ services:
       dockerfile: Dockerfile
     container_name: cloudclear-api
     restart: unless-stopped
-    # Expose API port directly as fallback when Caddy is not used
-    # If API_DIRECT_PORT is set, use it; otherwise Docker assigns random port
-    ports:
-      - "${API_DIRECT_PORT:-}:8080"
     environment:
       # Docker environment marker
       - DOCKER_CONTAINER=true
@@ -72,13 +68,11 @@ services:
       - "com.cloudclear.service=api"
       - "com.cloudclear.description=CloudClear API Server with WebSocket support"
 
-  # Caddy Reverse Proxy (Optional - use profile 'caddy' to enable)
+  # Caddy Reverse Proxy
   caddy:
     image: caddy:2-alpine
     container_name: cloudclear-caddy
     restart: unless-stopped
-    profiles:
-      - caddy
     ports:
       - "${CADDY_HTTP_PORT:-8080}:80"
       - "${CADDY_HTTPS_PORT:-8443}:443"

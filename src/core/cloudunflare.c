@@ -28,6 +28,7 @@
 #include <json-c/json.h>
 #include "dns_enhanced.h"
 #include "advanced_ip_detection.h"
+#include "config.h"
 
 // Always include recon common for shared types
 #include "recon/common/recon_common.h"
@@ -926,20 +927,28 @@ int perform_advanced_reconnaissance(struct recon_session *session, const char *d
 
             if (cve_detection_init_context(&cve_ctx) == 0) {
                 // Perform comprehensive CVE-2025 detection
-                int cve_vulns = cve_detection_scan_all_vulns(&cve_ctx, domain);
+                // Scan target for vulnerabilities (technology/version unknown, so pass NULL)
+                cve_detection_scan_target(&cve_ctx, domain, NULL, NULL);
+                
+                // Also check for specific vulnerability types
+                cve_detection_check_cdn_origin_leak(&cve_ctx, domain, NULL);
+                cve_detection_check_dns_vulnerabilities(&cve_ctx, domain);
+                
+                // Get vulnerability count
+                uint32_t cve_vulns = cve_detection_get_vulnerability_count(&cve_ctx);
 
                 if (cve_vulns > 0) {
-                    printf("\n[CRITICAL] CVE-2025 vulnerabilities detected: %d\n", cve_vulns);
+                    printf("\n[CRITICAL] CVE-2025 vulnerabilities detected: %u\n", cve_vulns);
                     cve_detection_print_results(&cve_ctx);
 
                     // Export CVE detection results
                     char cve_json_filename[512];
                     snprintf(cve_json_filename, sizeof(cve_json_filename),
                             "cve_2025_detection_%s.json", domain);
-                    cve_detection_export_json(&cve_ctx, cve_json_filename);
+                    cve_detection_export_results_json(&cve_ctx, cve_json_filename);
                     printf("[CVE-2025] Results exported to %s\n", cve_json_filename);
 
-                    total_results += cve_vulns;
+                    total_results += (int)cve_vulns;
                 } else {
                     printf("[CVE-2025] No CVE-2025 vulnerabilities detected\n");
                 }

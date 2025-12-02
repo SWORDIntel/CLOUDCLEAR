@@ -385,3 +385,100 @@ uint32_t cve_detection_get_critical_count(const cve_detection_context_t *ctx) {
 uint32_t cve_detection_get_exploitable_count(const cve_detection_context_t *ctx) {
     return ctx ? atomic_load(&ctx->exploitable_vulnerabilities) : 0;
 }
+
+// Scan target for vulnerabilities
+int cve_detection_scan_target(cve_detection_context_t *ctx,
+                              const char *target,
+                              const char *detected_technology,
+                              const char *version) {
+    if (!ctx || !target) return -1;
+
+    int vulnerabilities_found = 0;
+
+    // Scan through CVE database for matches
+    for (uint32_t i = 0; i < ctx->cve_count; i++) {
+        cve_entry_t *cve = &ctx->cve_database[i];
+        bool matches = false;
+
+        // Check if technology matches
+        if (detected_technology && cve->affected_products) {
+            for (uint32_t j = 0; j < cve->affected_product_count; j++) {
+                if (strcasestr(detected_technology, cve->affected_products[j].product) ||
+                    strcasestr(cve->affected_products[j].product, detected_technology)) {
+                    matches = true;
+                    break;
+                }
+            }
+        }
+
+        // If no specific technology, check all CVEs that affect CDN bypass
+        if (!detected_technology && cve->affects_cdn_bypass) {
+            matches = true;
+        }
+
+        if (matches) {
+            cve_detection_result_t result = {0};
+            memcpy(&result.cve, cve, sizeof(cve_entry_t));
+            result.vulnerable = true;
+            result.confidence = detected_technology ? 0.75f : 0.50f;
+            snprintf(result.evidence, sizeof(result.evidence),
+                    "Target %s may be affected by %s", target, cve->cve_id);
+            if (version) {
+                snprintf(result.detected_version, sizeof(result.detected_version), "%s", version);
+            }
+            result.detected_timestamp = time(NULL);
+            snprintf(result.remediation_advice, sizeof(result.remediation_advice),
+                    "%s", cve->mitigation);
+
+            cve_detection_add_result(ctx, &result);
+            atomic_fetch_add(&ctx->vulnerabilities_found, 1);
+            if (cve->severity == CVE_SEVERITY_CRITICAL) {
+                atomic_fetch_add(&ctx->critical_vulnerabilities, 1);
+            }
+            if (cve->exploit_status >= CVE_EXPLOIT_POC) {
+                atomic_fetch_add(&ctx->exploitable_vulnerabilities, 1);
+            }
+            vulnerabilities_found++;
+        }
+    }
+
+    return vulnerabilities_found;
+}
+
+// Export results to JSON
+int cve_detection_export_results_json(const cve_detection_context_t *ctx,
+                                      const char *filename) {
+    if (!ctx || !filename) return -1;
+
+    FILE *fp = fopen(filename, "w");
+    if (!fp) return -1;
+
+    fprintf(fp, "{\n");
+    fprintf(fp, "  \"cve_detection_results\": {\n");
+    fprintf(fp, "    \"total_vulnerabilities\": %u,\n", atomic_load(&ctx->vulnerabilities_found));
+    fprintf(fp, "    \"critical_count\": %u,\n", atomic_load(&ctx->critical_vulnerabilities));
+    fprintf(fp, "    \"exploitable_count\": %u,\n", atomic_load(&ctx->exploitable_vulnerabilities));
+    fprintf(fp, "    \"results\": [\n");
+
+    for (uint32_t i = 0; i < ctx->result_count; i++) {
+        const cve_detection_result_t *result = &ctx->results[i];
+        fprintf(fp, "      {\n");
+        fprintf(fp, "        \"cve_id\": \"%s\",\n", result->cve.cve_id);
+        fprintf(fp, "        \"title\": \"%s\",\n", result->cve.title);
+        fprintf(fp, "        \"severity\": \"%s\",\n", cve_severity_to_string(result->cve.severity));
+        fprintf(fp, "        \"cvss_score\": %.1f,\n", result->cve.cvss_score);
+        fprintf(fp, "        \"vulnerable\": %s,\n", result->vulnerable ? "true" : "false");
+        fprintf(fp, "        \"confidence\": %.2f,\n", result->confidence);
+        fprintf(fp, "        \"evidence\": \"%s\",\n", result->evidence);
+        fprintf(fp, "        \"category\": \"%s\",\n", cve_category_to_string(result->cve.category));
+        fprintf(fp, "        \"exploit_status\": \"%s\"\n", cve_exploit_status_to_string(result->cve.exploit_status));
+        fprintf(fp, "      }%s\n", (i < ctx->result_count - 1) ? "," : "");
+    }
+
+    fprintf(fp, "    ]\n");
+    fprintf(fp, "  }\n");
+    fprintf(fp, "}\n");
+
+    fclose(fp);
+    return 0;
+}
